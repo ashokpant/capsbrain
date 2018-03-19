@@ -5,6 +5,7 @@
 
 outputs
 data/mnist
+data/
 # User-specific stuff:
 .idea
 .idea/**/workspace.xml

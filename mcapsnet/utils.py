@@ -179,6 +179,7 @@ def create_inputs_fashion_mnist(is_train):
 def create_inputs_cifar10(is_train):
     tr_x, tr_y = load_cifar10(is_train)
     tr_x = tr_x.astype(np.float32, copy=False)
+    tr_y = tr_y.T[0]
     data_queue = tf.train.slice_input_producer([tr_x, tr_y], capacity=64 * 8)
     x, y = tf.train.shuffle_batch(data_queue, num_threads=8, batch_size=cfg.batch_size, capacity=cfg.batch_size * 64,
                                   min_after_dequeue=cfg.batch_size * 32, allow_smaller_final_batch=False)
@@ -198,6 +199,7 @@ def load_cifar10(is_training):
 def create_inputs_cifar100(is_train):
     tr_x, tr_y = load_cifar100(is_train)
     tr_x = tr_x.astype(np.float32, copy=False)
+    tr_y = tr_y.T[0]
     data_queue = tf.train.slice_input_producer([tr_x, tr_y], capacity=64 * 8)
     x, y = tf.train.shuffle_batch(data_queue, num_threads=8, batch_size=cfg.batch_size, capacity=cfg.batch_size * 64,
                                   min_after_dequeue=cfg.batch_size * 32, allow_smaller_final_batch=False)
@@ -241,7 +243,7 @@ def load_mnist(is_training=True):
     # => [num_samples, 10]
     # trY = tf.one_hot(trY, depth=10, axis=1, dtype=tf.float32)
     # teY = tf.one_hot(teY, depth=10, axis=1, dtype=tf.float32)
-
+    print(trY)
     if is_training:
         return trX, trY
     else:
@@ -293,7 +295,7 @@ def get_create_inputs(dataset_name: str, is_train: bool, epochs: int):
                'fashion_mnist': lambda: create_inputs_mnist(is_train),
                'smallNORB': lambda: create_inputs_norb(is_train, epochs),
                'cifar10': lambda: create_inputs_cifar10(is_train),
-               'cifa100': lambda: create_inputs_cifar100(is_train)}
+               'cifar100': lambda: create_inputs_cifar100(is_train)}
     return options[dataset_name]()
 
 

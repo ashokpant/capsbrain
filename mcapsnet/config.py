@@ -43,7 +43,7 @@ flags.DEFINE_integer('D', 16, 'number of channels in output from ConvCaps2')
 ############################
 #   environment setting    #
 ############################
-flags.DEFINE_string('dataset', 'mnist', 'The name of dataset [mnist, fashion-mnist')
+flags.DEFINE_string('dataset', 'cifar10', 'The name of dataset [mnist, fashion-mnist')
 flags.DEFINE_string('num_class', None, 'Number of classes')
 flags.DEFINE_string('input_size', None, 'Input image size')
 flags.DEFINE_string('input_channel', None, 'Input image channels')

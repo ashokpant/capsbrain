@@ -83,10 +83,12 @@ def train():
     # Tensor(?, 10)
     one_hot_labels = slim.one_hot_encoding(labels, cfg.num_class)
 
-    print(images, labels, one_hot_labels)
+    print("images: ", images)
+    print("labels: ", labels)
+    print("one_hot_labels: ", one_hot_labels)
 
     # poses: Tensor(?, 10, 4, 4) activations: (?, 10)
-    poses, activations = mcapsnet.network.capsules_net(images, num_classes=10, iterations=3,
+    poses, activations = mcapsnet.network.capsules_net(images, num_classes=cfg.num_class, iterations=3,
                                                        batch_size=cfg.batch_size, name='capsules_em')
 
     global_step = tf.train.get_or_create_global_step()
@@ -137,6 +139,7 @@ def main(_):
     # tf.logging.info(' Graph loaded')
 
     # sv = tf.train.Supervisor(graph=model.graph, logdir=cfg.logdir, save_model_secs=0)
+    print(cfg)
     if cfg.is_training:
         tf.logging.info(' Start training...')
         train()

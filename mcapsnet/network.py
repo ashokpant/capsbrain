@@ -85,6 +85,11 @@ def spread_loss(labels, activations, iterations_per_epoch, global_step, name):
         mask_t = tf.equal(labels, 1)  # Mask for the true label
         mask_i = tf.equal(labels, 0)  # Mask for the non-true label
 
+        print(mask_i)
+        print(mask_t)
+        print(labels)
+        print(activations)
+
         # Activation for the true label
         # activations_t (?, 1)
         activations_t = tf.reshape(
