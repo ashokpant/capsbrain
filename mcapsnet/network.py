@@ -1,5 +1,6 @@
 import tensorflow as tf
 
+from mcapsnet.config import cfg
 from mcapsnet.layers import conv2d, primary_caps, conv_capsule, class_capsules
 
 slim = tf.contrib.slim
@@ -54,6 +55,31 @@ def capsules_net(inputs, num_classes, iterations, batch_size, name='capsule_em')
         poses, activations = nets
 
     return poses, activations
+
+
+def accuracy(outputs, targets, batch_size, name='accuracy'):
+    with tf.variable_scope(name) as scope:
+        logits_idx = tf.to_int32(tf.argmax(outputs, axis=1))
+        logits_idx = tf.reshape(logits_idx, shape=(batch_size,))
+        correct_prediction = tf.equal(tf.to_int32(targets), logits_idx)
+        acc = tf.reduce_sum(tf.cast(correct_prediction, tf.float32)) / batch_size
+        return acc
+
+
+def decode(outputs, hot_targets, batch_size, name='decoder'):
+    # Reconstruction
+    reconstruct = tf.reshape(tf.multiply(outputs, hot_targets), shape=[batch_size, -1])
+    tf.logging.info("Decoder input value dimension:{}".format(reconstruct.get_shape()))
+
+    with tf.variable_scope(name) as scope:
+        reconstruct = slim.fully_connected(reconstruct, 512, trainable=True,
+                                           weights_regularizer=tf.contrib.layers.l2_regularizer(5e-04))
+        reconstruct = slim.fully_connected(reconstruct, 1024, trainable=True,
+                                           weights_regularizer=tf.contrib.layers.l2_regularizer(5e-04))
+        decoded = slim.fully_connected(reconstruct, cfg.input_size * cfg.input_size,
+                                       trainable=True, activation_fn=tf.sigmoid,
+                                       weights_regularizer=tf.contrib.layers.l2_regularizer(5e-04))
+        return decoded
 
 
 def spread_loss(labels, activations, iterations_per_epoch, global_step, name):
@@ -113,3 +139,81 @@ def spread_loss(labels, activations, iterations_per_epoch, global_step, name):
         tf.losses.add_loss(l)
 
         return l
+
+
+class CapsNet(object):
+    def __init__(self, images, labels, num_train_batch):
+        self.graph = tf.get_default_graph()
+        with self.graph.as_default():
+            # images: Tensor (?, 28, 28, 1)
+            # labels: Tensor (?)
+            # self.images = tf.placeholder(tf.float32,
+            #                              shape=(cfg.batch_size, cfg.input_shape, cfg.input_shape, cfg.num_channel))
+            # self.labels = tf.placeholder(tf.int32, shape=(cfg.batch_size,))
+            self.images = images
+            self.labels = labels
+
+
+
+            self.one_hot_labels = slim.one_hot_encoding(self.labels, cfg.num_class)  # Tensor(?, 10)
+            print(self.images, self.labels, self.one_hot_labels)
+            # poses: Tensor(?, 10, 4, 4) activations: (?, 10)
+            self.poses, self.activations = capsules_net(self.images, num_classes=cfg.num_class, iterations=3,
+                                                        batch_size=cfg.batch_size, name='capsules_em')
+            self.decoded = decode(self.activations, self.one_hot_labels, cfg.batch_size)
+            self.global_step = tf.train.get_or_create_global_step()
+            self.loss = spread_loss(self.one_hot_labels, self.activations, num_train_batch, self.global_step,
+                                    name='spread_loss')
+
+            self.accuracy = accuracy(self.activations, self.labels, cfg.batch_size, "train_acc")
+
+            self.optimizer = tf.train.AdamOptimizer(learning_rate=0.0001)
+            self.train_op = slim.learning.create_train_op(self.loss, self.optimizer, global_step=self.global_step,
+                                                          clip_gradient_norm=4.0)
+            self.summary_op = self._summary()
+
+    def loss(self):
+        # 1. The margin loss
+
+        # [batch_size, 10, 1, 1]
+        # max_l = max(0, m_plus-||v_c||)^2
+        max_l = tf.square(tf.maximum(0., cfg.m_plus - self.v_length))
+        # max_r = max(0, ||v_c||-m_minus)^2
+        max_r = tf.square(tf.maximum(0., self.v_length - cfg.m_minus))
+        assert max_l.get_shape() == [cfg.batch_size, 10, 1, 1]
+
+        # reshape: [batch_size, 10, 1, 1] => [batch_size, 10]
+        max_l = tf.reshape(max_l, shape=(cfg.batch_size, -1))
+        max_r = tf.reshape(max_r, shape=(cfg.batch_size, -1))
+
+        # calc T_c: [batch_size, 10]
+        # T_c = Y, is my understanding correct? Try it.
+        T_c = self.Y
+        # [batch_size, 10], element-wise multiply
+        L_c = T_c * max_l + cfg.lambda_val * (1 - T_c) * max_r
+
+        self.margin_loss = tf.reduce_mean(tf.reduce_sum(L_c, axis=1))
+
+        # 2. The reconstruction loss
+        orgin = tf.reshape(self.X, shape=(cfg.batch_size, -1))
+        squared = tf.square(self.decoded - orgin)
+        self.reconstruction_err = tf.reduce_mean(squared)
+
+        # 3. Total loss
+        # The paper uses sum of squared error as reconstruction error, but we
+        # have used reduce_mean in `# 2 The reconstruction loss` to calculate
+        # mean squared error. In order to keep in line with the paper,the
+        # regularization scale should be 0.0005*784=0.392
+        self.total_loss = self.margin_loss + cfg.regularization_scale * self.reconstruction_err
+
+    # Summary
+    def _summary(self):
+        train_summary = []
+        train_summary.append(tf.summary.scalar('train/spread loss', self.loss))
+        # train_summary.append(tf.summary.scalar('train/reconstruction_loss (mse)', self.reconstruction_loss))
+        # train_summary.append(tf.summary.scalar('train/total_loss', self.total_loss))
+        recon_img = tf.reshape(self.decoded, shape=(cfg.batch_size, cfg.input_size, cfg.input_size, 1))
+        train_summary.append(tf.summary.image('reconstruction_img', recon_img))
+        train_summary.append(tf.summary.scalar('train/train_acc', self.accuracy))
+        # train_summary.append(tf.summary.scalar('learning_rate', self.learning_rate))
+        return tf.summary.merge(train_summary)
