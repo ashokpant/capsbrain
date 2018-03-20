@@ -495,6 +495,7 @@ def train2():
                     fd_train_acc.flush()
                 else:
                     loss_value, summary_str = sess.run([model.train_op, model.summary_op])
+                    summary_writer.add_summary(summary_str, g_step)
                     logger.info(
                         '{} iteration finises in {} second,  loss={}'.format(step, time.time() - tic,
                                                                                            loss_value))
