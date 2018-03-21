@@ -23,7 +23,7 @@ flags.DEFINE_float('lambda_val', 0.5, 'down weight of the loss for absent digit 
 flags.DEFINE_float('epsilon', 1e-9, 'epsilon')
 
 # for training
-flags.DEFINE_integer('batch_size', 8, 'batch size')
+flags.DEFINE_integer('batch_size', 16, 'batch size')
 flags.DEFINE_integer('epoch', 5, 'epoch')
 flags.DEFINE_integer('iter_routing', 3, 'number of iterations in routing algorithm')
 flags.DEFINE_boolean('mask_with_y', True, 'use the true label to mask out target capsule or not')
@@ -101,13 +101,8 @@ def update_cfg(dataset):
     cfg.summary_dir = os.path.join(cfg.log_dir, dataset, 'train_log')
 
 
-# def get_dataset_size_train(dataset_name: str):
-#     options = {'mnist': 55000, 'smallNORB': 23400 * 2,
-#                'fashion_mnist': 55000, 'cifar10': 50000, 'cifar100': 50000}
-#     return options[dataset_name]
-
 def get_dataset_size_train(dataset_name: str):
-    options = {'mnist': 10000, 'smallNORB': 23400 * 2,
+    options = {'mnist': 55000, 'smallNORB': 23400 * 2,
                'fashion_mnist': 55000, 'cifar10': 50000, 'cifar100': 50000}
     return options[dataset_name]
 
