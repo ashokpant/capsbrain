@@ -373,17 +373,17 @@ def matrix_capsules_em_routing(votes, i_activations, beta_v, beta_a, iterations,
             rr_prime = rr * i_activations
 
             # rr_prime_sum: sum over all input capsule i
-            rr_prime_sum = tf.reduce_sum(rr_prime, axis=-3, keep_dims=True, name='rr_prime_sum')
+            rr_prime_sum = tf.reduce_sum(rr_prime, axis=-3, keepdims=True, name='rr_prime_sum')
 
             # Mean of the output capsules: o_mean(24, 6, 6, 1, 32, 16)
             o_mean = tf.reduce_sum(
-                rr_prime * votes, axis=-3, keep_dims=True
+                rr_prime * votes, axis=-3, keepdims=True
             ) / rr_prime_sum
 
             # Standard deviation of the output capsule:  o_stdv (24, 6, 6, 1, 32, 16)
             o_stdv = tf.sqrt(
                 tf.reduce_sum(
-                    rr_prime * tf.square(votes - o_mean), axis=-3, keep_dims=True
+                    rr_prime * tf.square(votes - o_mean), axis=-3, keepdims=True
                 ) / rr_prime_sum
             )
 
@@ -393,11 +393,11 @@ def matrix_capsules_em_routing(votes, i_activations, beta_v, beta_a, iterations,
             # o_cost: (24, 6, 6, 1, 32, 1)
             # o_activations_cost = (24, 6, 6, 1, 32, 1)
             # For numeric stability.
-            o_cost = tf.reduce_sum(o_cost_h, axis=-1, keep_dims=True)
-            o_cost_mean = tf.reduce_mean(o_cost, axis=-2, keep_dims=True)
+            o_cost = tf.reduce_sum(o_cost_h, axis=-1, keepdims=True)
+            o_cost_mean = tf.reduce_mean(o_cost, axis=-2, keepdims=True)
             o_cost_stdv = tf.sqrt(
                 tf.reduce_sum(
-                    tf.square(o_cost - o_cost_mean), axis=-2, keep_dims=True
+                    tf.square(o_cost - o_cost_mean), axis=-2, keepdims=True
                 ) / o_cost.get_shape().as_list()[-2]
             )
             o_activations_cost = beta_a + (o_cost_mean - o_cost) / (o_cost_stdv + epsilon)
@@ -421,11 +421,11 @@ def matrix_capsules_em_routing(votes, i_activations, beta_v, beta_a, iterations,
             """
 
             o_p_unit0 = - tf.reduce_sum(
-                tf.square(votes - o_mean) / (2 * tf.square(o_stdv)), axis=-1, keep_dims=True
+                tf.square(votes - o_mean) / (2 * tf.square(o_stdv)), axis=-1, keepdims=True
             )
 
             o_p_unit2 = - tf.reduce_sum(
-                tf.log(o_stdv + epsilon), axis=-1, keep_dims=True
+                tf.log(o_stdv + epsilon), axis=-1, keepdims=True
             )
 
             # o_p is the probability density of the h-th component of the vote from i to j
@@ -435,7 +435,7 @@ def matrix_capsules_em_routing(votes, i_activations, beta_v, beta_a, iterations,
             # rr: (24, 6, 6, 288, 32, 1)
             zz = tf.log(o_activations + epsilon) + o_p
             rr = tf.nn.softmax(
-                zz, dim=len(zz.get_shape().as_list()) - 2
+                zz, axis=len(zz.get_shape().as_list()) - 2
             )
 
             return rr

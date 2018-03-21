@@ -243,7 +243,6 @@ def load_mnist(is_training=True):
     # => [num_samples, 10]
     # trY = tf.one_hot(trY, depth=10, axis=1, dtype=tf.float32)
     # teY = tf.one_hot(teY, depth=10, axis=1, dtype=tf.float32)
-    print(trY)
     if is_training:
         return trX, trY
     else:

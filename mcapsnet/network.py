@@ -153,10 +153,7 @@ class CapsNet(object):
             self.images = images
             self.labels = labels
 
-
-
             self.one_hot_labels = slim.one_hot_encoding(self.labels, cfg.num_class)  # Tensor(?, 10)
-            print(self.images, self.labels, self.one_hot_labels)
             # poses: Tensor(?, 10, 4, 4) activations: (?, 10)
             self.poses, self.activations = capsules_net(self.images, num_classes=cfg.num_class, iterations=3,
                                                         batch_size=cfg.batch_size, name='capsules_em')
@@ -168,8 +165,9 @@ class CapsNet(object):
             self.accuracy = accuracy(self.activations, self.labels, cfg.batch_size, "train_acc")
 
             self.optimizer = tf.train.AdamOptimizer(learning_rate=0.0001)
-            self.train_op = slim.learning.create_train_op(self.loss, self.optimizer, global_step=self.global_step,
-                                                          clip_gradient_norm=4.0)
+            self.train_op =self.optimizer.minimize(self.loss, global_step=self.global_step)
+            # self.train_op = tf.learning.create_train_op(self.loss, self.optimizer, global_step=self.global_step,
+            # clip_gradient_norm=4.0)
             self.summary_op = self._summary()
 
     def loss(self):

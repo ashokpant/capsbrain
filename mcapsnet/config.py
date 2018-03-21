@@ -43,7 +43,7 @@ flags.DEFINE_integer('D', 16, 'number of channels in output from ConvCaps2')
 ############################
 #   environment setting    #
 ############################
-flags.DEFINE_string('dataset', 'cifar10', 'The name of dataset [mnist, fashion-mnist')
+flags.DEFINE_string('dataset', 'mnist', 'The name of dataset [mnist, fashion-mnist')
 flags.DEFINE_string('num_class', None, 'Number of classes')
 flags.DEFINE_string('input_size', None, 'Input image size')
 flags.DEFINE_string('input_channel', None, 'Input image channels')
@@ -55,8 +55,9 @@ flags.DEFINE_string('ckpt_dir', None, 'ckpt directory')
 flags.DEFINE_string('summary_dir', None, 'summary directory')
 flags.DEFINE_integer('train_sum_freq', 10, 'the frequency of saving train summary(step)')
 flags.DEFINE_integer('val_sum_freq', 20, 'the frequency of saving valuation summary(step)')
-flags.DEFINE_integer('save_freq', 1, 'the frequency of saving model(epoch)')
-flags.DEFINE_integer('save_freq_steps', 100, 'the frequency of saving model(steps)')
+flags.DEFINE_integer('log_freq', 1, 'the frequency of logging(steps)')
+flags.DEFINE_integer('save_freq', 10, 'the frequency of saving model(steps)')
+flags.DEFINE_integer('max_steps', 100000, 'the max steps')
 flags.DEFINE_string('results', 'results', 'path for saving results')
 flags.DEFINE_integer('seed', 1234, "Initial random seed")
 ############################
@@ -100,11 +101,15 @@ def update_cfg(dataset):
     cfg.summary_dir = os.path.join(cfg.log_dir, dataset, 'train_log')
 
 
+# def get_dataset_size_train(dataset_name: str):
+#     options = {'mnist': 55000, 'smallNORB': 23400 * 2,
+#                'fashion_mnist': 55000, 'cifar10': 50000, 'cifar100': 50000}
+#     return options[dataset_name]
+
 def get_dataset_size_train(dataset_name: str):
-    options = {'mnist': 55000, 'smallNORB': 23400 * 2,
+    options = {'mnist': 10000, 'smallNORB': 23400 * 2,
                'fashion_mnist': 55000, 'cifar10': 50000, 'cifar100': 50000}
     return options[dataset_name]
-
 
 def get_dataset_size_test(dataset_name: str):
     options = {'mnist': 10000, 'smallNORB': 23400 * 2,
