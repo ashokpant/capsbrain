@@ -142,33 +142,52 @@ def spread_loss(labels, activations, iterations_per_epoch, global_step, name):
 
 
 class CapsNet(object):
-    def __init__(self, images, labels, num_train_batch):
+    def __init__(self, images, labels, num_train_batch, batch_size=cfg.batch_size, is_training=True):
         self.graph = tf.get_default_graph()
         with self.graph.as_default():
-            # images: Tensor (?, 28, 28, 1)
-            # labels: Tensor (?)
-            # self.images = tf.placeholder(tf.float32,
-            #                              shape=(cfg.batch_size, cfg.input_shape, cfg.input_shape, cfg.num_channel))
-            # self.labels = tf.placeholder(tf.int32, shape=(cfg.batch_size,))
-            self.images = images
-            self.labels = labels
+            self.batch_size = batch_size
+            if is_training:
+                # images: Tensor (?, 28, 28, 1)
+                # labels: Tensor (?)
+                # self.images = tf.placeholder(tf.float32,
+                #                              shape=(None, cfg.input_size, cfg.input_size, cfg.input_channel))
+                # self.labels = tf.placeholder(tf.int32, shape=(None,))
+                self.images = images
+                self.labels = labels
 
-            self.one_hot_labels = slim.one_hot_encoding(self.labels, cfg.num_class)  # Tensor(?, 10)
-            # poses: Tensor(?, 10, 4, 4) activations: (?, 10)
-            self.poses, self.activations = capsules_net(self.images, num_classes=cfg.num_class, iterations=3,
-                                                        batch_size=cfg.batch_size, name='capsules_em')
-            self.decoded = decode(self.activations, self.one_hot_labels, cfg.batch_size)
-            self.global_step = tf.train.get_or_create_global_step()
-            self.loss = spread_loss(self.one_hot_labels, self.activations, num_train_batch, self.global_step,
-                                    name='spread_loss')
+                self.one_hot_labels = slim.one_hot_encoding(self.labels, cfg.num_class)  # Tensor(?, 10)
+                # poses: Tensor(?, 10, 4, 4) activations: (?, 10)
+                self.poses, self.activations = capsules_net(self.images, num_classes=cfg.num_class, iterations=3,
+                                                            batch_size=self.batch_size, name='capsules_em')
+                self.decoded = decode(self.activations, self.one_hot_labels, self.batch_size)
+                self.global_step = tf.train.get_or_create_global_step()
+                self.loss = spread_loss(self.one_hot_labels, self.activations, num_train_batch, self.global_step,
+                                        name='spread_loss')
 
-            self.accuracy = accuracy(self.activations, self.labels, cfg.batch_size, "train_acc")
+                self.accuracy = accuracy(self.activations, self.labels, self.batch_size, "accuracy")
 
-            self.optimizer = tf.train.AdamOptimizer(learning_rate=0.0001)
-            self.train_op =self.optimizer.minimize(self.loss, global_step=self.global_step)
-            # self.train_op = tf.learning.create_train_op(self.loss, self.optimizer, global_step=self.global_step,
-            # clip_gradient_norm=4.0)
-            self.summary_op = self._summary()
+                self.optimizer = tf.train.AdamOptimizer(learning_rate=0.0001)
+                self.train_op =self.optimizer.minimize(self.loss, global_step=self.global_step)
+                # self.train_op = tf.learning.create_train_op(self.loss, self.optimizer, global_step=self.global_step,
+                # clip_gradient_norm=4.0)
+                self.summary_op = self.get_summary_op(scope='train', name_prefix='train/')
+            else:
+                # images: Tensor (?, 28, 28, 1)
+                # labels: Tensor (?)
+                self.images = tf.placeholder(tf.float32,
+                                             shape=(self.batch_size, cfg.input_size, cfg.input_size, cfg.input_channel))
+                self.labels = tf.placeholder(tf.int32, shape=(batch_size,))
+
+                self.one_hot_labels = slim.one_hot_encoding(self.labels, cfg.num_class)  # Tensor(?, 10)
+                # poses: Tensor(?, 10, 4, 4) activations: (?, 10)
+                self.poses, self.activations = capsules_net(self.images, num_classes=cfg.num_class, iterations=3,
+                                                            batch_size=self.batch_size, name='capsules_em')
+                self.decoded = decode(self.activations, self.one_hot_labels, self.batch_size)
+                self.global_step = tf.train.get_or_create_global_step()
+
+                self.accuracy = accuracy(self.activations, self.labels, self.batch_size, "accuracy")
+
+                self.summary_op = self.get_summary_op
 
     def loss(self):
         # 1. The margin loss
@@ -204,14 +223,19 @@ class CapsNet(object):
         # regularization scale should be 0.0005*784=0.392
         self.total_loss = self.margin_loss + cfg.regularization_scale * self.reconstruction_err
 
-    # Summary
-    def _summary(self):
+    def get_summary_op(self, scope, name_prefix=''):
         train_summary = []
-        train_summary.append(tf.summary.scalar('train/spread loss', self.loss))
-        # train_summary.append(tf.summary.scalar('train/reconstruction_loss (mse)', self.reconstruction_loss))
-        # train_summary.append(tf.summary.scalar('train/total_loss', self.total_loss))
-        recon_img = tf.reshape(self.decoded, shape=(cfg.batch_size, cfg.input_size, cfg.input_size, 1))
-        train_summary.append(tf.summary.image('reconstruction_img', recon_img))
-        train_summary.append(tf.summary.scalar('train/train_acc', self.accuracy))
-        # train_summary.append(tf.summary.scalar('learning_rate', self.learning_rate))
+        if scope == "train":
+            train_summary.append(tf.summary.scalar(name_prefix+'spread_loss', self.loss))
+            # train_summary.append(tf.summary.scalar('train/reconstruction_loss (mse)', self.reconstruction_loss))
+            # train_summary.append(tf.summary.scalar('train/total_loss', self.total_loss))
+            recon_img = tf.reshape(self.decoded, shape=(self.batch_size, cfg.input_size, cfg.input_size, 1))
+            train_summary.append(tf.summary.image(name_prefix+'reconstruction', recon_img))
+            train_summary.append(tf.summary.scalar(name_prefix+'accuracy', self.accuracy))
+            # train_summary.append(tf.summary.scalar('learning_rate', self.learning_rate))
+        elif scope =="test":
+            train_summary.append(tf.summary.scalar(name_prefix+'accuracy', self.accuracy))
+            recon_img = tf.reshape(self.decoded, shape=(self.batch_size, cfg.input_size, cfg.input_size, 1))
+            train_summary.append(tf.summary.image(name_prefix+'reconstruction', recon_img))
+
         return tf.summary.merge(train_summary)

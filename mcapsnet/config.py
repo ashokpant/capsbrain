@@ -43,10 +43,12 @@ flags.DEFINE_integer('D', 16, 'number of channels in output from ConvCaps2')
 ############################
 #   environment setting    #
 ############################
-flags.DEFINE_string('dataset', 'mnist', 'The name of dataset [mnist, fashion-mnist')
+flags.DEFINE_string('dataset', 'cifar10', 'The name of dataset [mnist, fashion-mnist')
 flags.DEFINE_string('num_class', None, 'Number of classes')
 flags.DEFINE_string('input_size', None, 'Input image size')
 flags.DEFINE_string('input_channel', None, 'Input image channels')
+flags.DEFINE_string('train_size', None, 'Train samples')
+flags.DEFINE_string('test_size', None, 'Test samples')
 flags.DEFINE_boolean('is_training', True, 'train or predict phase')
 flags.DEFINE_integer('num_threads', 8, 'number of threads of enqueueing examples')
 flags.DEFINE_string('log_dir', 'outputs', 'logs directory')
@@ -77,41 +79,35 @@ def update_cfg(dataset):
         cfg.num_class = 10
         cfg.input_size = 28
         cfg.input_channel = 1
+        cfg.train_size = 55000
+        cfg.test_size = 10000
     elif dataset == "fashion_mnist":
         cfg.num_class = 10
         cfg.input_size = 28
         cfg.input_channel = 1
+        cfg.train_size = 55000
+        cfg.test_size = 10000
     elif dataset == "cifar10":
         cfg.num_class = 10
         cfg.input_size = 32
         cfg.input_channel = 3
+        cfg.train_size = 50000
+        cfg.test_size = 10000
     elif dataset == "cifar100":
-        cfg.num_class = 10
+        cfg.num_class = 100
         cfg.input_size = 32
         cfg.input_channel = 3
+        cfg.train_size=50000
+        cfg.test_size=10000
     elif dataset == "smallNORB":
-        cfg.num_class = 10
+        cfg.num_class = 5
         cfg.input_size = 32
         cfg.input_channel = 1
+        cfg.train_size = 23400 * 2
+        cfg.test_size = 23400 * 2
     else:
-        pass
+        raise KeyError(dataset)
 
     cfg.result_dir = os.path.join(cfg.log_dir, dataset, 'results')
     cfg.ckpt_dir = os.path.join(cfg.log_dir, dataset, 'model')
     cfg.summary_dir = os.path.join(cfg.log_dir, dataset, 'train_log')
-
-
-def get_dataset_size_train(dataset_name: str):
-    options = {'mnist': 55000, 'smallNORB': 23400 * 2,
-               'fashion_mnist': 55000, 'cifar10': 50000, 'cifar100': 50000}
-    return options[dataset_name]
-
-def get_dataset_size_test(dataset_name: str):
-    options = {'mnist': 10000, 'smallNORB': 23400 * 2,
-               'fashion_mnist': 10000, 'cifar10': 10000, 'cifar100': 10000}
-    return options[dataset_name]
-
-
-def get_num_classes(dataset_name: str):
-    options = {'mnist': 10, 'smallNORB': 5, 'fashion_mnist': 10, 'cifar10': 10, 'cifar100': 100}
-    return options[dataset_name]
