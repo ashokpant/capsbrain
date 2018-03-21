@@ -182,22 +182,29 @@ def predict():
         summary_writer=None,
         global_step=model.global_step,
         saver=saver)
-    image = utils.read_image(cfg.input_file)
-    img = utils.resize_image(image, [cfg.input_size, cfg.input_size])
+    images = []
+    if cfg.input_file.endswith('.txt'):
+        images = [line.rstrip('\n') for line in open(cfg.input_file)]
+    else:
+        images.append(cfg.input_file)
+
     with sv.managed_session(config=tf.ConfigProto(allow_soft_placement=True)) as sess:
         sv.saver.restore(sess, tf.train.latest_checkpoint(cfg.ckpt_dir))
         logger.info("Model is restored successfully: {}".format(cfg.ckpt_dir))
-        poses, activations = sess.run([model.poses, model.activations], feed_dict={model.images: img})
 
-        logits_idx = tf.to_int32(tf.argmax(activations, axis=1))
-        logits_idx = tf.reshape(logits_idx, shape=(model.batch_size,))
-
-        idx = sess.run(logits_idx)
-
-        logger.info("Input:{}".format(cfg.input_file))
-        logger.info("Output:{}".format(poses, activations))
-        logger.info("Output class:{}".format(idx))
-        utils.show_image(image=image, text=str(activations))
+        for filename in images:
+            tic = time.time()
+            image = utils.imread(filename)
+            img = utils.imresize(image, (cfg.input_size, cfg.input_size))
+            img = utils.bgr2gray(img)
+            img = np.expand_dims(img, 3)
+            img = np.expand_dims(img, 0)
+            # poses, activations, predictions = sess.run([model.poses, model.activations, model.predictions],
+            # feed_dict={model.images: img})
+            predictions = sess.run(model.predictions, feed_dict={model.images: img})
+            tac = time.time() - tic
+            logger.info("Input:{} , Prediction: {}, Time: {:3.f}".format(cfg.input_file, predictions[0], tac))
+            utils.show_image(image=image, text=str(predictions[0]), pause=100)
 
 
 def main(_):

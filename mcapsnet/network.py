@@ -57,13 +57,27 @@ def capsules_net(inputs, num_classes, iterations, batch_size, name='capsule_em')
     return poses, activations
 
 
-def accuracy(outputs, targets, batch_size, name='accuracy'):
+def predictions(outputs, batch_size, name='output'):
     with tf.variable_scope(name) as scope:
         logits_idx = tf.to_int32(tf.argmax(outputs, axis=1))
         logits_idx = tf.reshape(logits_idx, shape=(batch_size,))
-        correct_prediction = tf.equal(tf.to_int32(targets), logits_idx)
+        return logits_idx
+
+
+def accuracy(predictions, targets, batch_size, name='accuracy'):
+    with tf.variable_scope(name) as scope:
+        correct_prediction = tf.equal(tf.to_int32(targets), predictions)
         acc = tf.reduce_sum(tf.cast(correct_prediction, tf.float32)) / batch_size
         return acc
+
+
+# def accuracy(outputs, targets, batch_size, name='accuracy'):
+#     with tf.variable_scope(name) as scope:
+#         logits_idx = tf.to_int32(tf.argmax(outputs, axis=1))
+#         logits_idx = tf.reshape(logits_idx, shape=(batch_size,))
+#         correct_prediction = tf.equal(tf.to_int32(targets), logits_idx)
+#         acc = tf.reduce_sum(tf.cast(correct_prediction, tf.float32)) / batch_size
+#         return acc
 
 
 def decode(outputs, hot_targets, batch_size, name='decoder'):
@@ -163,11 +177,11 @@ class CapsNet(object):
                 self.global_step = tf.train.get_or_create_global_step()
                 self.loss = spread_loss(self.one_hot_labels, self.activations, num_train_batch, self.global_step,
                                         name='spread_loss')
-
-                self.accuracy = accuracy(self.activations, self.labels, self.batch_size, "accuracy")
+                self.predictions = predictions(self.activations, self.batch_size, 'predictions')
+                self.accuracy = accuracy(self.predictions, self.labels, self.batch_size, "accuracy")
 
                 self.optimizer = tf.train.AdamOptimizer(learning_rate=0.0001)
-                self.train_op =self.optimizer.minimize(self.loss, global_step=self.global_step)
+                self.train_op = self.optimizer.minimize(self.loss, global_step=self.global_step)
                 # self.train_op = tf.learning.create_train_op(self.loss, self.optimizer, global_step=self.global_step,
                 # clip_gradient_norm=4.0)
                 self.summary_op = self.get_summary_op(scope='train', name_prefix='train/')
@@ -185,7 +199,8 @@ class CapsNet(object):
                 self.decoded = decode(self.activations, self.one_hot_labels, self.batch_size)
                 self.global_step = tf.train.get_or_create_global_step()
 
-                self.accuracy = accuracy(self.activations, self.labels, self.batch_size, "accuracy")
+                self.predictions = predictions(self.activations, self.batch_size, 'predictions')
+                self.accuracy = accuracy(self.predictions, self.labels, self.batch_size, "accuracy")
 
                 self.summary_op = self.get_summary_op
 
@@ -226,16 +241,16 @@ class CapsNet(object):
     def get_summary_op(self, scope, name_prefix=''):
         train_summary = []
         if scope == "train":
-            train_summary.append(tf.summary.scalar(name_prefix+'spread_loss', self.loss))
+            train_summary.append(tf.summary.scalar(name_prefix + 'spread_loss', self.loss))
             # train_summary.append(tf.summary.scalar('train/reconstruction_loss (mse)', self.reconstruction_loss))
             # train_summary.append(tf.summary.scalar('train/total_loss', self.total_loss))
             recon_img = tf.reshape(self.decoded, shape=(self.batch_size, cfg.input_size, cfg.input_size, 1))
-            train_summary.append(tf.summary.image(name_prefix+'reconstruction', recon_img))
-            train_summary.append(tf.summary.scalar(name_prefix+'accuracy', self.accuracy))
+            train_summary.append(tf.summary.image(name_prefix + 'reconstruction', recon_img))
+            train_summary.append(tf.summary.scalar(name_prefix + 'accuracy', self.accuracy))
             # train_summary.append(tf.summary.scalar('learning_rate', self.learning_rate))
-        elif scope =="test":
-            train_summary.append(tf.summary.scalar(name_prefix+'accuracy', self.accuracy))
+        elif scope == "test":
+            train_summary.append(tf.summary.scalar(name_prefix + 'accuracy', self.accuracy))
             recon_img = tf.reshape(self.decoded, shape=(self.batch_size, cfg.input_size, cfg.input_size, 1))
-            train_summary.append(tf.summary.image(name_prefix+'reconstruction', recon_img))
+            train_summary.append(tf.summary.image(name_prefix + 'reconstruction', recon_img))
 
         return tf.summary.merge(train_summary)

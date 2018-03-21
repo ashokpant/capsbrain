@@ -298,7 +298,7 @@ def get_create_inputs(dataset_name: str, is_train: bool, epochs: int):
     return options[dataset_name]()
 
 
-def read_image(filename):
+def imread(filename):
     try:
         return cv2.imread(filename)
     except Exception as e:
@@ -306,18 +306,53 @@ def read_image(filename):
         return None
 
 
-def resize_image(image, size=None):
+def imresize(image, size=None):
     if size is None:
         return image
     else:
         return cv2.resize(image, size)
 
 
-def show_image(image, text=None):
+def bgr2gray(image):
+    return cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+
+def show_image(image, text=None, pause=0):
+    emmi = None
     if text is not None:
-        image = cv2.putText(img=image, text=text, org=[10, 10], fontFace=0, fontScale=1, color=(0, 255, 255))
-    cv2.imshow('Output', image)
-    cv2.waitKey(0)
+        emmi = np.zeros_like(image)
+        add_text(img=emmi, text=text, text_top=np.int32(emmi.shape[0] / 2), text_left=np.int32(emmi.shape[1] / 2),
+                 image_scale=1)
+    stack = np.hstack((image, np.ones(shape=image.shape), emmi))
+    cv2.imshow('Output', stack)
+    cv2.waitKey(pause)
+    # c = cv2.waitKey(30) & 0xff
+    # if c == 27 or c == 113:
+    #     cv2.destroyAllWindows()
+
+
+def add_text(img, text, text_top, text_left=0, image_scale=1):
+    """
+    Args:
+        img (numpy array of shape (width, height, 3): input image
+        text (str): text to add to image
+        text_top (int): location of top text to add
+        image_scale (float): image resize scale
+
+    Summary:
+        Add display text to a frame.
+
+    Returns:
+        Next available location of top text (allows for chaining this function)
+    """
+    cv2.putText(
+        img=img,
+        text=text,
+        org=(text_left, text_top),
+        fontFace=cv2.FONT_HERSHEY_SIMPLEX,
+        fontScale=0.45 * image_scale,
+        color=(255, 255, 255))
+    return text_top + int(5 * image_scale)
 
 
 if __name__ == '__main__':
