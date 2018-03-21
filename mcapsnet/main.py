@@ -203,7 +203,7 @@ def predict():
             # feed_dict={model.images: img})
             predictions = sess.run(model.predictions, feed_dict={model.images: img})
             tac = time.time() - tic
-            logger.info("Input:{} , Prediction: {}, Time: {:3.f}".format(cfg.input_file, predictions[0], tac))
+            logger.info("Input:{} , Prediction: {}, Time: {:.3f}".format(cfg.input_file, predictions[0], tac))
             utils.show_image(image=image, text=str(predictions[0]), pause=100)
 
 
