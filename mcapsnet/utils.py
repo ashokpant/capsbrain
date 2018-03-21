@@ -7,7 +7,7 @@ from tensorflow.contrib import slim
 import data.smallNORB as norb
 from keras.datasets import cifar10, cifar100
 from keras import backend as K
-
+import cv2
 import logging
 import daiquiri
 
@@ -296,6 +296,28 @@ def get_create_inputs(dataset_name: str, is_train: bool, epochs: int):
                'cifar10': lambda: create_inputs_cifar10(is_train),
                'cifar100': lambda: create_inputs_cifar100(is_train)}
     return options[dataset_name]()
+
+
+def read_image(filename):
+    try:
+        return cv2.imread(filename)
+    except Exception as e:
+        logger.error("Unable to read image: {}, {}".format(filename, e))
+        return None
+
+
+def resize_image(image, size=None):
+    if size is None:
+        return image
+    else:
+        return cv2.resize(image, size)
+
+
+def show_image(image, text=None):
+    if text is not None:
+        image = cv2.putText(img=image, text=text, org=[10, 10], fontFace=0, fontScale=1, color=(0, 255, 255))
+    cv2.imshow('Output', image)
+    cv2.waitKey(0)
 
 
 if __name__ == '__main__':
