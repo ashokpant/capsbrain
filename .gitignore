@@ -5,7 +5,13 @@
 
 outputs
 data/mnist
-data/
+data/att_faces
+data/cifar_10
+data/cifar_100
+data/fashion_mnist
+data/smallNORB
+*.tfrecords
+
 # User-specific stuff:
 .idea
 .idea/**/workspace.xml
