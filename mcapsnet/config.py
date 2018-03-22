@@ -43,7 +43,7 @@ flags.DEFINE_integer('D', 16, 'number of channels in output from ConvCaps2')
 ############################
 #   environment setting    #
 ############################
-flags.DEFINE_string('dataset', 'cifar10', 'The name of dataset [mnist, fashion-mnist')
+flags.DEFINE_string('dataset', 'att_faces', 'The name of dataset [mnist, fashion_mnist, smallNORB, cifar10, cifar100, att_faces')
 flags.DEFINE_string('num_class', None, 'Number of classes')
 flags.DEFINE_string('input_size', None, 'Input image size')
 flags.DEFINE_string('input_channel', None, 'Input image channels')
@@ -106,6 +106,13 @@ def update_cfg(dataset):
         cfg.input_channel = 1
         cfg.train_size = 23400 * 2
         cfg.test_size = 23400 * 2
+    elif dataset == "att_faces":
+        cfg.num_class = 40
+        cfg.input_size = 32
+        cfg.input_channel = 3
+        cfg.train_size = 320
+        cfg.test_size = 80
+        cfg.batch_size = 16
     else:
         raise KeyError(dataset)
 

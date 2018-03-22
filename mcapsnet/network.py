@@ -1,10 +1,11 @@
+import daiquiri
 import tensorflow as tf
 
 from mcapsnet.config import cfg
 from mcapsnet.layers import conv2d, primary_caps, conv_capsule, class_capsules
 
 slim = tf.contrib.slim
-
+logger = daiquiri.getLogger(__name__)
 
 def capsules_net(inputs, num_classes, iterations, batch_size, name='capsule_em'):
     """Define the Capsule Network model
@@ -170,6 +171,9 @@ class CapsNet(object):
                 self.labels = labels
 
                 self.one_hot_labels = slim.one_hot_encoding(self.labels, cfg.num_class)  # Tensor(?, 10)
+                logger.info("Images: {}".format(self.images))
+                logger.info("Labels: {}".format(self.labels))
+                logger.info("Hot Labels: {}".format(self.one_hot_labels))
                 # poses: Tensor(?, 10, 4, 4) activations: (?, 10)
                 self.poses, self.activations = capsules_net(self.images, num_classes=cfg.num_class, iterations=3,
                                                             batch_size=self.batch_size, name='capsules_em')
@@ -193,6 +197,9 @@ class CapsNet(object):
                 self.labels = tf.placeholder(tf.int32, shape=(batch_size,))
 
                 self.one_hot_labels = slim.one_hot_encoding(self.labels, cfg.num_class)  # Tensor(?, 10)
+                logger.info("Images: {}".format(self.images))
+                logger.info("Labels: {}".format(self.labels))
+                logger.info("Hot Labels: {}".format(self.one_hot_labels))
                 # poses: Tensor(?, 10, 4, 4) activations: (?, 10)
                 self.poses, self.activations = capsules_net(self.images, num_classes=cfg.num_class, iterations=3,
                                                             batch_size=self.batch_size, name='capsules_em')

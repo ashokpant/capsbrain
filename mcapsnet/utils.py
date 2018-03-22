@@ -10,7 +10,8 @@ from keras import backend as K
 import cv2
 import logging
 import daiquiri
-
+from scipy.misc import imread, imsave
+from sklearn.externals.joblib import Parallel, delayed
 from mcapsnet.config import cfg
 
 daiquiri.setup(level=logging.DEBUG)
@@ -180,6 +181,7 @@ def create_inputs_cifar10(is_train):
     tr_x, tr_y = load_cifar10(is_train)
     tr_x = tr_x.astype(np.float32, copy=False)
     tr_y = tr_y.T[0]
+
     data_queue = tf.train.slice_input_producer([tr_x, tr_y], capacity=64 * 8)
     x, y = tf.train.shuffle_batch(data_queue, num_threads=8, batch_size=cfg.batch_size, capacity=cfg.batch_size * 64,
                                   min_after_dequeue=cfg.batch_size * 32, allow_smaller_final_batch=False)
@@ -204,6 +206,51 @@ def create_inputs_cifar100(is_train):
     x, y = tf.train.shuffle_batch(data_queue, num_threads=8, batch_size=cfg.batch_size, capacity=cfg.batch_size * 64,
                                   min_after_dequeue=cfg.batch_size * 32, allow_smaller_final_batch=False)
     return x, y
+
+
+def create_inputs_att_faces(is_train, size):
+    tr_x, tr_y = load_att_faces(is_train, size)
+    tr_x = tr_x.astype(np.float32, copy=False)
+    data_queue = tf.train.slice_input_producer([tr_x, tr_y], capacity=64 * 8)
+    x, y = tf.train.shuffle_batch(data_queue, num_threads=8, batch_size=cfg.batch_size, capacity=cfg.batch_size * 64,
+                                  min_after_dequeue=cfg.batch_size * 32, allow_smaller_final_batch=False)
+    return x, y
+
+
+def load_att_faces(is_training, size=None):
+    path = os.path.join('data', 'att_faces')
+    labels = read_file(os.path.join(path, 'labels.txt'))
+
+    if is_training:
+        filename = os.path.join(path, 'train.txt')
+        X, Y = read_file(filename=filename)
+        Y = Y.astype(np.int32)
+        X_ = read_images(X, size=size)
+        return np.array(X_), Y
+    else:
+        filename = os.path.join(path, 'test.txt')
+        X, Y = read_file(filename=filename)
+        Y = Y.astype(np.int32)
+        X_ = read_images(X, size=size)
+        return np.array(X_), Y
+
+
+def read_file(filename):
+    X = []
+    Y = []
+    f = open(filename)
+    for line in f.readlines():
+        tokens = line.split(' ')
+        X.append(tokens[0])
+        Y.append(tokens[1])
+    return np.array(X), np.array(Y)
+
+
+def read_images(image_list, size=None):
+    images = Parallel(n_jobs=4, verbose=5)(
+        delayed(imread)(f, size) for f in image_list
+    )
+    return images
 
 
 def load_cifar100(is_training):
@@ -289,18 +336,22 @@ def load_data(dataset_name: str, is_train: bool):
     return options[dataset_name]()
 
 
-def get_create_inputs(dataset_name: str, is_train: bool, epochs: int):
+def get_create_inputs(dataset_name: str, is_train: bool, epochs: int, size=None):
     options = {'mnist': lambda: create_inputs_mnist(is_train),
                'fashion_mnist': lambda: create_inputs_mnist(is_train),
                'smallNORB': lambda: create_inputs_norb(is_train, epochs),
                'cifar10': lambda: create_inputs_cifar10(is_train),
-               'cifar100': lambda: create_inputs_cifar100(is_train)}
+               'cifar100': lambda: create_inputs_cifar100(is_train),
+               'att_faces': lambda: create_inputs_att_faces(is_train, size=size)}
     return options[dataset_name]()
 
 
-def imread(filename):
+def imread(filename, size=None):
     try:
-        return cv2.imread(filename)
+        image = cv2.imread(filename)[:, :, [2, 1, 0]].astype(np.float32)
+        if size is not None:
+            image = imresize(image, size)
+        return image
     except Exception as e:
         logger.error("Unable to read image: {}, {}".format(filename, e))
         return None

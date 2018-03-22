@@ -30,7 +30,7 @@ def train():
     tf.set_random_seed(cfg.seed)
 
     """Get batches per epoch."""
-    train_data = get_create_inputs(cfg.dataset, True, cfg.epoch)
+    train_data = get_create_inputs(cfg.dataset, True, cfg.epoch, size=(cfg.input_size, cfg.input_size))
     num_train_batch = int(cfg.train_size / cfg.batch_size)  # 60,000/24 = 2500
 
     """Set summary writer"""
@@ -123,10 +123,10 @@ def evaluation(scope='test'):
 
     """Get data."""
     if scope == 'train':
-        data = get_create_inputs(cfg.dataset, True, cfg.epoch)
+        data = get_create_inputs(cfg.dataset, True, cfg.epoch, size=(cfg.input_size, cfg.input_size))
         num_batch = int(cfg.train_size / cfg.batch_size)
     else:
-        data = get_create_inputs(cfg.dataset, False, cfg.epoch)
+        data = get_create_inputs(cfg.dataset, False, cfg.epoch, size=(cfg.input_size, cfg.input_size))
         num_batch = int(cfg.test_size / cfg.batch_size)
 
     model = CapsNet(images=None, labels=None, num_train_batch=None, batch_size=cfg.batch_size, is_training=False)
