@@ -254,7 +254,10 @@ def load_att_faces(is_training, size=None):
 
 
 def create_inputs_casia_faces(is_training):
-    path = os.path.join('data', 'casia')
+    if cfg.dataset_dir is not None:
+        path = cfg.dataset_dir
+    else:
+        path = os.path.join('data', 'casia')
     if is_training:
         filename = os.path.join(path, 'caisa_train.tfrecords')
         shape = [cfg.input_size, cfg.input_size, cfg.input_channel]
