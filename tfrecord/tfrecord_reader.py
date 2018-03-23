@@ -11,7 +11,7 @@ flags.DEFINE_multi_integer('image_shape', [100, 100, 3], 'Image size. [None, [wi
 FLAGS = flags.FLAGS
 
 
-def read_tfrecord(filename, image_shape, batch_size=16):
+def read_tfrecord(filename, image_shape, batch_size=16, epoches = 1):
 
     if filename.__contains__('train'):
         split_name = 'train'
@@ -29,7 +29,7 @@ def read_tfrecord(filename, image_shape, batch_size=16):
                k_height: tf.FixedLenFeature([], tf.int64),
                k_channel: tf.FixedLenFeature([], tf.int64),
                }
-    filename_queue = tf.train.string_input_producer([filename], num_epochs=1)
+    filename_queue = tf.train.string_input_producer([filename], num_epochs=epoches)
     # Define a reader and read the next record
     reader = tf.TFRecordReader()
     _, serialized_example = reader.read(filename_queue)
@@ -55,7 +55,7 @@ def read_tfrecord(filename, image_shape, batch_size=16):
 def main():
     if not FLAGS.tfrecord_file:
         raise ValueError('tfrecord_filename is empty.')
-    images, labels = read_tfrecord(FLAGS.tfrecord_file, image_shape=FLAGS.image_shape, batch_size=16)
+    images, labels = read_tfrecord(FLAGS.tfrecord_file, image_shape=FLAGS.image_shape, batch_size=16, epoches=1)
 
     with tf.Session() as sess:
         # Initialize all global and local variables
@@ -67,6 +67,7 @@ def main():
         for batch_index in range(5):
             img, lbl = sess.run([images, labels])
             img = img.astype(np.uint8)
+            print(img.shape)
             for j in range(6):
                 plt.subplot(2, 3, j + 1)
                 plt.imshow(img[j, ...])

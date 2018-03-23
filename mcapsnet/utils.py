@@ -224,13 +224,12 @@ def create_inputs_att_faces_from_tfrecords(is_training):
     if is_training:
         filename = os.path.join(path, 'att_faces_train.tfrecords')
         shape = [cfg.input_size, cfg.input_size, cfg.input_channel]
-        x, y = read_tfrecord(filename=filename, image_shape=shape, batch_size=cfg.batch_size)
+        x, y = read_tfrecord(filename=filename, image_shape=shape, batch_size=cfg.batch_size, epoches=cfg.epoch)
     else:
         filename = os.path.join(path, 'att_faces_test.tfrecords')
         shape = [cfg.input_size, cfg.input_size, cfg.input_channel]
-        x, y = read_tfrecord(filename=filename, image_shape=shape, batch_size=cfg.batch_size)
+        x, y = read_tfrecord(filename=filename, image_shape=shape, batch_size=cfg.batch_size, epoches=cfg.epoch)
 
-    print(x, y)
     x = slim.batch_norm(x, center=False, is_training=True, trainable=True)
     return x, y
 
@@ -261,11 +260,11 @@ def create_inputs_casia_faces(is_training):
     if is_training:
         filename = os.path.join(path, 'casia_train.tfrecords')
         shape = [cfg.input_size, cfg.input_size, cfg.input_channel]
-        x, y = read_tfrecord(filename=filename, image_shape=shape, batch_size=cfg.batch_size)
+        x, y = read_tfrecord(filename=filename, image_shape=shape, batch_size=cfg.batch_size, epoches=cfg.epoch)
     else:
         filename = os.path.join(path, 'casia_test.tfrecords')
         shape = [cfg.input_size, cfg.input_size, cfg.input_channel]
-        x, y = read_tfrecord(filename=filename, image_shape=shape, batch_size=cfg.batch_size)
+        x, y = read_tfrecord(filename=filename, image_shape=shape, batch_size=cfg.batch_size, epoches=cfg.epoch)
 
     x = slim.batch_norm(x, center=False, is_training=True, trainable=True)
     return x, y
@@ -445,7 +444,7 @@ def add_text(img, text, text_top, text_left=0, image_scale=1):
 
 
 if __name__ == '__main__':
-    x, y = get_create_inputs("mnist", False, 10)
+    x, y = get_create_inputs("att_faces", False, 10)
     print(x, y)
 
     with tf.Session() as sess:
