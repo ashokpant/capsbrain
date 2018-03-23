@@ -117,8 +117,8 @@ def update_cfg(dataset):
         cfg.num_class = 10575
         cfg.input_size = 64
         cfg.input_channel = 3
-        cfg.train_size = 8460
-        cfg.test_size = 2115
+        cfg.train_size = 789530
+        cfg.test_size = 197382
         cfg.batch_size = 16
         cfg.num_threads = 16
     else:
