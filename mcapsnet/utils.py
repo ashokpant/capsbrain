@@ -259,7 +259,7 @@ def create_inputs_casia_faces(is_training):
     else:
         path = os.path.join('data', 'casia')
     if is_training:
-        filename = os.path.join(path, 'caisa_train.tfrecords')
+        filename = os.path.join(path, 'casia_train.tfrecords')
         shape = [cfg.input_size, cfg.input_size, cfg.input_channel]
         x, y = read_tfrecord(filename=filename, image_shape=shape, batch_size=cfg.batch_size)
     else:
