@@ -108,11 +108,19 @@ def update_cfg(dataset):
         cfg.test_size = 23400 * 2
     elif dataset == "att_faces":
         cfg.num_class = 40
-        cfg.input_size = 32
+        cfg.input_size = 28
         cfg.input_channel = 3
         cfg.train_size = 320
         cfg.test_size = 80
         cfg.batch_size = 16
+    elif dataset == "casia":
+        cfg.num_class = 10575
+        cfg.input_size = 64
+        cfg.input_channel = 3
+        cfg.train_size = 8460
+        cfg.test_size = 2115
+        cfg.batch_size = 16
+        cfg.num_threads = 16
     else:
         raise KeyError(dataset)
 

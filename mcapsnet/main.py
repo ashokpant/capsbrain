@@ -94,13 +94,13 @@ def train():
                     assert not np.isnan(loss_value), 'Something wrong! loss is nan...'
                     sv.summary_writer.add_summary(summary_str, g_step)
                     logger.info(
-                        '{} iteration finises in {} second,  loss={}, train_acc={}'.format(step, (time.time() - tic),
+                        '{} iteration finises in {:.4f} second,  loss={:.4f}, train_acc={:.2f}'.format(step, (time.time() - tic),
                                                                                            loss_value, train_acc))
                 else:
                     _, loss_value, summary_str = sess.run([model.train_op, model.loss, model.summary_op])
                     sv.summary_writer.add_summary(summary_str, g_step)
                     logger.info(
-                        '{} iteration finises in {} second,  loss={}'.format(step, time.time() - tic,
+                        '{} iteration finises in {:.4f} second,  loss={:.4f}'.format(step, time.time() - tic,
                                                                              loss_value))
 
                 if (g_step + 1) % cfg.save_freq == 0:

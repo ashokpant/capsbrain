@@ -1,18 +1,20 @@
+import logging
 import os
-import scipy
+
+import cv2
+import daiquiri
+import data.smallNORB as norb
 import numpy as np
+import scipy
 import tensorflow as tf
+from keras import backend as K
+from keras.datasets import cifar10, cifar100
+from scipy.misc import imread
+from sklearn.externals.joblib import Parallel, delayed
 from tensorflow.contrib import slim
 
-import data.smallNORB as norb
-from keras.datasets import cifar10, cifar100
-from keras import backend as K
-import cv2
-import logging
-import daiquiri
-from scipy.misc import imread, imsave
-from sklearn.externals.joblib import Parallel, delayed
 from mcapsnet.config import cfg
+from tfrecord.tfrecord_reader import read_tfrecord
 
 daiquiri.setup(level=logging.DEBUG)
 logger = daiquiri.getLogger(__name__)
@@ -127,9 +129,9 @@ def softmax(logits, axis=None):
 def create_inputs_norb(is_train: bool, epochs: int):
     import re
     if is_train:
-        CHUNK_RE = re.compile(r"train\d+\.tfrecords")
+        CHUNK_RE = re.compile(r"train\d+\.tfrecord")
     else:
-        CHUNK_RE = re.compile(r"test\d+\.tfrecords")
+        CHUNK_RE = re.compile(r"test\d+\.tfrecord")
 
     processed_dir = './data'
     chunk_files = [os.path.join(processed_dir, fname)
@@ -217,6 +219,22 @@ def create_inputs_att_faces(is_train, size):
     return x, y
 
 
+def create_inputs_att_faces_from_tfrecords(is_training):
+    path = os.path.join('data', 'att_faces')
+    if is_training:
+        filename = os.path.join(path, 'att_faces_train.tfrecords')
+        shape = [cfg.input_size, cfg.input_size, cfg.input_channel]
+        x, y = read_tfrecord(filename=filename, image_shape=shape, batch_size=cfg.batch_size)
+    else:
+        filename = os.path.join(path, 'att_faces_test.tfrecords')
+        shape = [cfg.input_size, cfg.input_size, cfg.input_channel]
+        x, y = read_tfrecord(filename=filename, image_shape=shape, batch_size=cfg.batch_size)
+
+    print(x, y)
+    x = slim.batch_norm(x, center=False, is_training=True, trainable=True)
+    return x, y
+
+
 def load_att_faces(is_training, size=None):
     path = os.path.join('data', 'att_faces')
     labels = read_file(os.path.join(path, 'labels.txt'))
@@ -233,6 +251,21 @@ def load_att_faces(is_training, size=None):
         Y = Y.astype(np.int32)
         X_ = read_images(X, size=size)
         return np.array(X_), Y
+
+
+def create_inputs_casia_faces(is_training):
+    path = os.path.join('data', 'casia')
+    if is_training:
+        filename = os.path.join(path, 'caisa_train.tfrecords')
+        shape = [cfg.input_size, cfg.input_size, cfg.input_channel]
+        x, y = read_tfrecord(filename=filename, image_shape=shape, batch_size=cfg.batch_size)
+    else:
+        filename = os.path.join(path, 'casia_test.tfrecords')
+        shape = [cfg.input_size, cfg.input_size, cfg.input_channel]
+        x, y = read_tfrecord(filename=filename, image_shape=shape, batch_size=cfg.batch_size)
+
+    x = slim.batch_norm(x, center=False, is_training=True, trainable=True)
+    return x, y
 
 
 def read_file(filename):
@@ -342,7 +375,9 @@ def get_create_inputs(dataset_name: str, is_train: bool, epochs: int, size=None)
                'smallNORB': lambda: create_inputs_norb(is_train, epochs),
                'cifar10': lambda: create_inputs_cifar10(is_train),
                'cifar100': lambda: create_inputs_cifar100(is_train),
-               'att_faces': lambda: create_inputs_att_faces(is_train, size=size)}
+               # 'att_faces': lambda: create_inputs_att_faces(is_train, size=size),
+               'att_faces': lambda: create_inputs_att_faces_from_tfrecords(is_train),
+               'casia': lambda: create_inputs_casia_faces(is_train)}
     return options[dataset_name]()
 
 
