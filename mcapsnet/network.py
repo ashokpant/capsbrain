@@ -1,11 +1,12 @@
 import daiquiri
 import tensorflow as tf
-
+import numpy as np
 from mcapsnet.config import cfg
 from mcapsnet.layers import conv2d, primary_caps, conv_capsule, class_capsules
 
 slim = tf.contrib.slim
 logger = daiquiri.getLogger(__name__)
+
 
 def capsules_net(inputs, num_classes, iterations, batch_size, name='capsule_em'):
     """Define the Capsule Network model
@@ -65,20 +66,11 @@ def predictions(outputs, batch_size, name='output'):
         return logits_idx
 
 
-def accuracy(predictions, targets, batch_size, name='accuracy'):
+def accuracy(outputs, targets, batch_size, name='accuracy'):
     with tf.variable_scope(name) as scope:
-        correct_prediction = tf.equal(tf.to_int32(targets), predictions)
-        acc = tf.reduce_sum(tf.cast(correct_prediction, tf.float32)) / batch_size
+        correct_prediction = tf.equal(tf.to_int32(targets), outputs)
+        acc = tf.reduce_sum(tf.cast(correct_prediction, tf.float32)) / tf.cast(batch_size, tf.float32)
         return acc
-
-
-# def accuracy(outputs, targets, batch_size, name='accuracy'):
-#     with tf.variable_scope(name) as scope:
-#         logits_idx = tf.to_int32(tf.argmax(outputs, axis=1))
-#         logits_idx = tf.reshape(logits_idx, shape=(batch_size,))
-#         correct_prediction = tf.equal(tf.to_int32(targets), logits_idx)
-#         acc = tf.reduce_sum(tf.cast(correct_prediction, tf.float32)) / batch_size
-#         return acc
 
 
 def decode(outputs, hot_targets, batch_size, name='decoder'):
@@ -91,9 +83,10 @@ def decode(outputs, hot_targets, batch_size, name='decoder'):
                                            weights_regularizer=tf.contrib.layers.l2_regularizer(5e-04))
         reconstruct = slim.fully_connected(reconstruct, 1024, trainable=True,
                                            weights_regularizer=tf.contrib.layers.l2_regularizer(5e-04))
-        decoded = slim.fully_connected(reconstruct, cfg.input_size * cfg.input_size,
+        decoded = slim.fully_connected(reconstruct, cfg.input_size * cfg.input_size * cfg.input_channel,
                                        trainable=True, activation_fn=tf.sigmoid,
                                        weights_regularizer=tf.contrib.layers.l2_regularizer(5e-04))
+        tf.logging.info("Decoder output value dimension:{}".format(decoded.get_shape()))
         return decoded
 
 
@@ -106,7 +99,6 @@ def spread_loss(labels, activations, iterations_per_epoch, global_step, name):
 
     :return: spread loss
     """
-
     # Margin schedule
     # Margin increase from 0.2 to 0.9 by an increment of 0.1 for every epoch
     margin = tf.train.piecewise_constant(
@@ -156,6 +148,42 @@ def spread_loss(labels, activations, iterations_per_epoch, global_step, name):
         return l
 
 
+def spread_loss1(hot_labels, activations, images, decoded, m):
+    """
+    :param hot_labels:
+    :param activations:
+    :param images:
+    :param m:
+    :return:
+    """
+    y = tf.expand_dims(hot_labels, axis=2)
+    data_size = int(images.get_shape()[1])
+
+    # spread loss
+    output1 = tf.reshape(activations, shape=[cfg.batch_size, 1, -1])
+    at = tf.matmul(output1, y)
+    """Paper eq(3)."""
+    sp_loss = tf.square(tf.maximum(0., m - (at - output1)))
+    sp_loss = tf.matmul(sp_loss, 1. - y)
+    sp_loss = tf.reduce_mean(sp_loss)
+
+    # reconstruction loss
+    tf.logging.info("Decoder input value dimension:{}".format(decoded.get_shape()))
+    with tf.variable_scope('decoder'):
+        x = tf.reshape(images, shape=[cfg.batch_size, -1])
+        reconstruction_loss = tf.reduce_mean(tf.square(decoded - x))
+
+    if cfg.weight_reg:
+        # regularization loss
+        regularization = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
+        # loss+0.0005*reconstruction_loss+regularization#
+        total_loss = tf.add_n([sp_loss] + [0.0005 * data_size * data_size * reconstruction_loss] + regularization)
+    else:
+        total_loss = tf.add_n([sp_loss] + [0.0005 * data_size * data_size * reconstruction_loss])
+
+    return total_loss, sp_loss, reconstruction_loss
+
+
 class CapsNet(object):
     def __init__(self, images, labels, num_train_batch, batch_size=cfg.batch_size, is_training=True):
         self.graph = tf.get_default_graph()
@@ -179,8 +207,12 @@ class CapsNet(object):
                                                             batch_size=self.batch_size, name='capsules_em')
                 self.decoded = decode(self.activations, self.one_hot_labels, self.batch_size)
                 self.global_step = tf.train.get_or_create_global_step()
-                self.loss = spread_loss(self.one_hot_labels, self.activations, num_train_batch, self.global_step,
-                                        name='spread_loss')
+
+                # self.loss = spread_loss(self.one_hot_labels, self.activations, num_train_batch, self.global_step,
+                #                         name='spread_loss')
+                self.m_op = tf.placeholder(dtype=tf.float32, shape=())
+                self.loss, self.sp_loss, self.reconstruction_loss = spread_loss1(self.one_hot_labels, self.activations, self.images,
+                                                               self.decoded, self.m_op)
                 self.predictions = predictions(self.activations, self.batch_size, 'predictions')
                 self.accuracy = accuracy(self.predictions, self.labels, self.batch_size, "accuracy")
 
@@ -189,6 +221,14 @@ class CapsNet(object):
                 # self.train_op = tf.learning.create_train_op(self.loss, self.optimizer, global_step=self.global_step,
                 # clip_gradient_norm=4.0)
                 self.summary_op = self.get_summary_op(scope='train', name_prefix='train/')
+
+                self.saver = tf.train.Saver(max_to_keep=5)
+
+                """Display parameters"""
+                total_p = np.sum([np.prod(v.get_shape().as_list()) for v in tf.global_variables()]).astype(np.int32)
+                train_p = np.sum([np.prod(v.get_shape().as_list()) for v in tf.trainable_variables()]).astype(np.int32)
+                logger.info('Total Parameters: {}'.format(total_p))
+                logger.info('Trainable Parameters: {}'.format(train_p))
             else:
                 # images: Tensor (?, 28, 28, 1)
                 # labels: Tensor (?)
@@ -210,6 +250,7 @@ class CapsNet(object):
                 self.accuracy = accuracy(self.predictions, self.labels, self.batch_size, "accuracy")
 
                 self.summary_op = self.get_summary_op
+                self.saver = tf.train.Saver(max_to_keep=5)
 
     def loss(self):
         # 1. The margin loss
@@ -248,16 +289,18 @@ class CapsNet(object):
     def get_summary_op(self, scope, name_prefix=''):
         train_summary = []
         if scope == "train":
-            train_summary.append(tf.summary.scalar(name_prefix + 'spread_loss', self.loss))
-            # train_summary.append(tf.summary.scalar('train/reconstruction_loss (mse)', self.reconstruction_loss))
-            # train_summary.append(tf.summary.scalar('train/total_loss', self.total_loss))
-            recon_img = tf.reshape(self.decoded, shape=(self.batch_size, cfg.input_size, cfg.input_size, 1))
+            train_summary.append(tf.summary.scalar(name_prefix + 'total_loss', self.loss))
+            train_summary.append(tf.summary.scalar(name_prefix + 'spread_loss', self.sp_loss))
+            train_summary.append(tf.summary.scalar(name_prefix + 'reconstruction_loss', self.reconstruction_loss))
+            recon_img = tf.reshape(self.decoded,
+                                   shape=(self.batch_size, cfg.input_size, cfg.input_size, cfg.input_channel))
             train_summary.append(tf.summary.image(name_prefix + 'reconstruction', recon_img))
             train_summary.append(tf.summary.scalar(name_prefix + 'accuracy', self.accuracy))
             # train_summary.append(tf.summary.scalar('learning_rate', self.learning_rate))
         elif scope == "test":
             train_summary.append(tf.summary.scalar(name_prefix + 'accuracy', self.accuracy))
-            recon_img = tf.reshape(self.decoded, shape=(self.batch_size, cfg.input_size, cfg.input_size, 1))
+            recon_img = tf.reshape(self.decoded,
+                                   shape=(self.batch_size, cfg.input_size, cfg.input_size, cfg.input_channel))
             train_summary.append(tf.summary.image(name_prefix + 'reconstruction', recon_img))
 
         return tf.summary.merge(train_summary)

@@ -48,7 +48,7 @@ def train():
         """Set Saver."""
         var_to_save = [v for v in tf.global_variables(
         ) if 'Adam' not in v.name]  # Don't save redundant Adam beta/gamma
-        saver = tf.train.Saver(var_list=var_to_save, max_to_keep=cfg.epoch)
+        saver = tf.train.Saver(var_list=var_to_save, max_to_keep=5)
 
         """Display parameters"""
         total_p = np.sum([np.prod(v.get_shape().as_list()) for v in var_to_save]).astype(np.int32)
@@ -67,7 +67,7 @@ def train():
         is_chief=True,
         summary_writer=summary_writer,
         global_step=model.global_step,
-        saver=saver)
+        saver=model.saver)
 
     """Set Session settings."""
     config = tf.ConfigProto(allow_soft_placement=True, log_device_placement=False)
@@ -78,6 +78,9 @@ def train():
         threads = tf.train.start_queue_runners(sess=sess, coord=sv.coord)
 
         # Main loop
+        m_min = 0.2
+        m_max = 0.9
+        m = m_min
         for epoch in range(cfg.epoch):
             logger.info("Training for epoch {}/{}:".format(epoch, cfg.epoch))
             for step in tqdm(range(num_train_batch), total=num_train_batch, ncols=70, leave=False, unit='b'):
@@ -85,28 +88,36 @@ def train():
                     logger.intfo('Session stopped!')
                     break
                 tic = time.time()
-
                 g_step = epoch * num_train_batch + step
 
                 if g_step % cfg.train_sum_freq == 0:
                     _, loss_value, train_acc, summary_str = sess.run(
-                        [model.train_op, model.loss, model.accuracy, model.summary_op])
+                        [model.train_op, model.loss, model.accuracy, model.summary_op], feed_dict={model.m_op: m})
                     assert not np.isnan(loss_value), 'Something wrong! loss is nan...'
                     sv.summary_writer.add_summary(summary_str, g_step)
                     logger.info(
-                        '{} iteration finises in {:.4f} second,  loss={:.4f}, train_acc={:.2f}'.format(step, (time.time() - tic),
-                                                                                           loss_value, train_acc))
+                        '{} iteration finises in {:.4f} second,  loss={:.4f}, train_acc={:.2f}'.format(step, (
+                                    time.time() - tic),
+                                                                                                       loss_value,
+                                                                                                       train_acc))
                 else:
-                    _, loss_value, summary_str = sess.run([model.train_op, model.loss, model.summary_op])
+                    _, loss_value, summary_str = sess.run([model.train_op, model.loss, model.summary_op],
+                                                          feed_dict={model.m_op: m})
                     sv.summary_writer.add_summary(summary_str, g_step)
                     logger.info(
                         '{} iteration finises in {:.4f} second,  loss={:.4f}'.format(step, time.time() - tic,
-                                                                             loss_value))
+                                                                                     loss_value))
 
                 if (g_step + 1) % cfg.save_freq == 0:
                     """Save model periodically"""
                     ckpt_file = os.path.join(cfg.ckpt_dir, 'model_{:.4f}.ckpt'.format(loss_value))
                     sv.saver.save(sess, ckpt_file, global_step=g_step)
+
+            """Epoch wise linear annealing."""
+            if g_step > 0:
+                m += (m_max - m_min) / (cfg.epoch * cfg.m_schedule)
+                if m > m_max:
+                    m = m_max
 
             """Save model at each epoch periodically"""
             ckpt_file = os.path.join(cfg.ckpt_dir, 'model_{:.4f}.ckpt'.format(loss_value))
@@ -147,7 +158,7 @@ def evaluation(scope='test'):
         is_chief=True,
         summary_writer=summary_writer,
         global_step=model.global_step,
-        saver=saver)
+        saver=model.saver)
 
     with sv.managed_session(config=tf.ConfigProto(allow_soft_placement=True)) as sess:
         sv.saver.restore(sess, tf.train.latest_checkpoint(cfg.ckpt_dir))

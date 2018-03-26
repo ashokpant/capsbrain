@@ -43,7 +43,7 @@ flags.DEFINE_integer('D', 16, 'number of channels in output from ConvCaps2')
 ############################
 #   environment setting    #
 ############################
-flags.DEFINE_string('dataset', 'att_faces', 'The name of dataset [mnist, fashion_mnist, smallNORB, cifar10, cifar100, att_faces')
+flags.DEFINE_string('dataset', 'mnist', 'The name of dataset [mnist, fashion_mnist, smallNORB, cifar10, cifar100, att_faces')
 flags.DEFINE_string('dataset_dir', None, 'Dataset dir')
 flags.DEFINE_string('num_class', None, 'Number of classes')
 flags.DEFINE_string('input_size', None, 'Input image size')
@@ -57,7 +57,7 @@ flags.DEFINE_string('log_dir', 'outputs', 'logs directory')
 flags.DEFINE_string('result_dir', None, 'result directory')
 flags.DEFINE_string('ckpt_dir', None, 'ckpt directory')
 flags.DEFINE_string('summary_dir', None, 'summary directory')
-flags.DEFINE_integer('train_sum_freq', 10, 'the frequency of saving train summary(step)')
+flags.DEFINE_integer('train_sum_freq', 5, 'the frequency of saving train summary(step)')
 flags.DEFINE_integer('val_sum_freq', 20, 'the frequency of saving valuation summary(step)')
 flags.DEFINE_integer('log_freq', 1, 'the frequency of logging(steps)')
 flags.DEFINE_integer('save_freq', 10, 'the frequency of saving model(steps)')
@@ -81,8 +81,8 @@ def update_cfg(dataset):
         cfg.num_class = 10
         cfg.input_size = 28
         cfg.input_channel = 1
-        cfg.train_size = 55000
-        cfg.test_size = 10000
+        cfg.train_size = 5500
+        cfg.test_size = 1000
     elif dataset == "fashion_mnist":
         cfg.num_class = 10
         cfg.input_size = 28
@@ -116,7 +116,7 @@ def update_cfg(dataset):
         cfg.batch_size = 16
     elif dataset == "casia":
         cfg.num_class = 10575
-        cfg.input_size = 64
+        cfg.input_size = 28
         cfg.input_channel = 3
         cfg.train_size = 789530
         cfg.test_size = 197382
