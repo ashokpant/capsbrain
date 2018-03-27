@@ -11,7 +11,7 @@ flags.DEFINE_multi_integer('image_shape', [100, 100, 3], 'Image size. [None, [wi
 FLAGS = flags.FLAGS
 
 
-def read_tfrecord(filename, image_shape, batch_size=16, epoches = 1):
+def read_tfrecord(filename, image_shape, batch_size=16, num_threads = 8,  epoches = 1):
 
     if filename.__contains__('train'):
         split_name = 'train'
@@ -45,7 +45,7 @@ def read_tfrecord(filename, image_shape, batch_size=16, epoches = 1):
     image = tf.reshape(image, image_shape)
 
     # # Creates batches by randomly shuffling tensors
-    images, labels = tf.train.shuffle_batch([image, label], num_threads=8, batch_size=batch_size,
+    images, labels = tf.train.shuffle_batch([image, label], num_threads=num_threads, batch_size=batch_size,
                                             capacity=batch_size * 64,
                                             min_after_dequeue=batch_size * 32, allow_smaller_final_batch=False)
 
@@ -55,7 +55,7 @@ def read_tfrecord(filename, image_shape, batch_size=16, epoches = 1):
 def main():
     if not FLAGS.tfrecord_file:
         raise ValueError('tfrecord_filename is empty.')
-    images, labels = read_tfrecord(FLAGS.tfrecord_file, image_shape=FLAGS.image_shape, batch_size=16, epoches=1)
+    images, labels = read_tfrecord(FLAGS.tfrecord_file, image_shape=FLAGS.image_shape, batch_size=16, num_threads=4, epoches=1)
 
     with tf.Session() as sess:
         # Initialize all global and local variables
