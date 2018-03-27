@@ -53,13 +53,13 @@ def train():
     sv = tf.train.Supervisor(
         graph=model.graph,
         is_chief=True,
+        logdir=cfg.ckpt_dir,
         summary_writer=summary_writer,
         global_step=model.global_step,
         saver=model.saver)
 
     """Set Session settings."""
     config = tf.ConfigProto(allow_soft_placement=True, log_device_placement=False)
-    config.gpu_options.allow_growth = True
 
     with sv.managed_session(config=config) as sess:
         """Start queue runner."""

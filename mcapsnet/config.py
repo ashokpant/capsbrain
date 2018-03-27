@@ -43,7 +43,7 @@ flags.DEFINE_integer('D', 16, 'number of channels in output from ConvCaps2')
 ############################
 #   environment setting    #
 ############################
-flags.DEFINE_string('dataset', 'att_faces', 'The name of dataset [mnist, fashion_mnist, smallNORB, cifar10, cifar100, att_faces')
+flags.DEFINE_string('dataset', 'smallNORB', 'The name of dataset [mnist, fashion_mnist, smallNORB, cifar10, cifar100, att_faces')
 flags.DEFINE_string('dataset_dir', None, 'Dataset dir')
 flags.DEFINE_string('num_class', None, 'Number of classes')
 flags.DEFINE_string('input_size', None, 'Input image size')
@@ -111,7 +111,7 @@ def update_cfg(dataset):
         cfg.test_size = 23400 * 2
     elif dataset == "att_faces":
         cfg.num_class = 40
-        cfg.input_size = 48
+        cfg.input_size = 32
         cfg.input_channel = 3
         cfg.train_size = 320
         cfg.test_size = 80
