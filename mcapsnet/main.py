@@ -53,7 +53,6 @@ def train():
     sv = tf.train.Supervisor(
         graph=model.graph,
         is_chief=True,
-        logdir=cfg.ckpt_dir,
         summary_writer=summary_writer,
         global_step=model.global_step,
         saver=model.saver)
@@ -62,6 +61,7 @@ def train():
     config = tf.ConfigProto(allow_soft_placement=True, log_device_placement=False)
 
     with sv.managed_session(config=config) as sess:
+
         """Start queue runner."""
         threads = tf.train.start_queue_runners(sess=sess, coord=sv.coord)
 
@@ -80,7 +80,7 @@ def train():
 
                 if g_step % cfg.train_sum_freq == 0:
                     _, loss_value, train_acc, summary_str = sess.run(
-                        [model.train_op, model.loss, model.accuracy, model.summary_op], feed_dict={model.m_op: m})
+                        [model.train_op, model.loss, model.accuracy, model.summary_op], feed_dict={model.m_op: np.float32(m)})
                     assert not np.isnan(loss_value), 'Something wrong! loss is nan...'
                     sv.summary_writer.add_summary(summary_str, g_step)
                     logger.info(
@@ -141,7 +141,6 @@ def evaluation(scope='test'):
     sv = tf.train.Supervisor(
         graph=model.graph,
         is_chief=True,
-        logdir=cfg.ckpt_dir,
         summary_writer=summary_writer,
         global_step=model.global_step,
         saver=model.saver)
