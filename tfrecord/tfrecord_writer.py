@@ -65,4 +65,4 @@ def demo():
 if __name__ == '__main__':
     main()
 
-# Run: python tfrecord_writer.py --dataset_dir data/mnist --tfrecord_file mnist --force True --image_size 64 --image_size 64
+# Run: python tfrecord_writer.py --dataset_dir data/mnist --tfrecord_file mnist --force True --image_size 64 --image_size 64 --test_ratio 0.1
