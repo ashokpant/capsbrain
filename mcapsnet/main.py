@@ -42,21 +42,9 @@ def train():
     images = train_data[0]
     labels = train_data[1]
 
-    model = CapsNet(images=images, labels=labels, num_train_batch=num_train_batch)
+    model = CapsNet(images=images, labels=labels, batch_size=cfg.batch_size, num_train_batch=num_train_batch)
 
     with model.graph.as_default():
-        """Set Saver."""
-        var_to_save = [v for v in tf.global_variables(
-        ) if 'Adam' not in v.name]  # Don't save redundant Adam beta/gamma
-        saver = tf.train.Saver(var_list=var_to_save, max_to_keep=5)
-
-        """Display parameters"""
-        total_p = np.sum([np.prod(v.get_shape().as_list()) for v in var_to_save]).astype(np.int32)
-        train_p = np.sum([np.prod(v.get_shape().as_list())
-                          for v in tf.trainable_variables()]).astype(np.int32)
-        logger.info('Total Parameters: {}'.format(total_p))
-        logger.info('Trainable Parameters: {}'.format(train_p))
-
         """Set summary writer"""
         if not os.path.exists(cfg.summary_dir):
             os.makedirs(cfg.summary_dir)
@@ -97,7 +85,7 @@ def train():
                     sv.summary_writer.add_summary(summary_str, g_step)
                     logger.info(
                         '{} iteration finises in {:.4f} second,  loss={:.4f}, train_acc={:.2f}'.format(step, (
-                                    time.time() - tic),
+                                time.time() - tic),
                                                                                                        loss_value,
                                                                                                        train_acc))
                 else:
@@ -140,7 +128,7 @@ def evaluation(scope='test'):
         data = get_create_inputs(cfg.dataset, False, cfg.epoch, size=(cfg.input_size, cfg.input_size))
         num_batch = int(cfg.test_size / cfg.batch_size)
 
-    model = CapsNet(images=None, labels=None, num_train_batch=None, batch_size=cfg.batch_size, is_training=False)
+    model = CapsNet(images=None, labels=None,  batch_size=cfg.batch_size,  num_train_batch=None,  is_training=False)
 
     with model.graph.as_default():
         if scope == 'train':
@@ -149,13 +137,11 @@ def evaluation(scope='test'):
             summary_op = model.summary_op(scope="test", name_prefix='eval/test/')
 
         summary_writer = tf.summary.FileWriterCache.get(cfg.summary_dir)
-        var_to_save = [v for v in tf.global_variables(
-        ) if 'Adam' not in v.name]  # Don't save redundant Adam beta/gamma
-        saver = tf.train.Saver(var_list=var_to_save)
 
     sv = tf.train.Supervisor(
         graph=model.graph,
         is_chief=True,
+        logdir=cfg.ckpt_dir,
         summary_writer=summary_writer,
         global_step=model.global_step,
         saver=model.saver)
@@ -182,17 +168,12 @@ def predict():
     logger.info("Prediction with {} model.".format(cfg.dataset))
     model = CapsNet(images=None, labels=None, num_train_batch=None, batch_size=1, is_training=False)
 
-    with model.graph.as_default():
-        vars = [v for v in tf.global_variables(
-        ) if 'Adam' not in v.name]  # Don't save redundant Adam beta/gamma
-        saver = tf.train.Saver(var_list=vars)
-
     sv = tf.train.Supervisor(
         graph=model.graph,
         is_chief=True,
         summary_writer=None,
         global_step=model.global_step,
-        saver=saver)
+        saver=model.saver)
     images = []
     if cfg.input_file.endswith('.txt'):
         images = [line.rstrip('\n') for line in open(cfg.input_file)]
@@ -220,6 +201,7 @@ def predict():
 
 def main(_):
     config.update_cfg(cfg.dataset)
+
     logger.info("Config: {}".format(cfg.flag_values_dict()))
     if cfg.mode == 'train':
         tf.logging.info(' Start training...')

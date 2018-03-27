@@ -11,7 +11,6 @@ logger = daiquiri.getLogger(__name__)
 def capsules_net(inputs, num_classes, iterations, batch_size, name='capsule_em'):
     """Define the Capsule Network model
     """
-
     with tf.variable_scope(name) as scope:
         # ReLU Conv1
         # Images shape (24, 28, 28, 1) -> conv 5x5 filters, 32 output channels, strides 2 with padding, ReLU
@@ -118,10 +117,6 @@ def spread_loss(labels, activations, iterations_per_epoch, global_step, name):
         mask_t = tf.equal(labels, 1)  # Mask for the true label
         mask_i = tf.equal(labels, 0)  # Mask for the non-true label
 
-        print(mask_i)
-        print(mask_t)
-        print(labels)
-        print(activations)
 
         # Activation for the true label
         # activations_t (?, 1)
@@ -185,7 +180,7 @@ def spread_loss1(hot_labels, activations, images, decoded, m):
 
 
 class CapsNet(object):
-    def __init__(self, images, labels, num_train_batch, batch_size=cfg.batch_size, is_training=True):
+    def __init__(self, images, labels, batch_size, num_train_batch=None, is_training=True):
         self.graph = tf.get_default_graph()
         with self.graph.as_default():
             self.batch_size = batch_size
@@ -216,8 +211,12 @@ class CapsNet(object):
                 self.predictions = predictions(self.activations, self.batch_size, 'predictions')
                 self.accuracy = accuracy(self.predictions, self.labels, self.batch_size, "accuracy")
 
+                self.lrn_rate = tf.maximum(tf.train.exponential_decay(
+                    1e-3, self.global_step, 1000, 0.8), 1e-5)
+
                 self.optimizer = tf.train.AdamOptimizer(learning_rate=0.0001)
                 self.train_op = self.optimizer.minimize(self.loss, global_step=self.global_step)
+
                 # self.train_op = tf.learning.create_train_op(self.loss, self.optimizer, global_step=self.global_step,
                 # clip_gradient_norm=4.0)
                 self.summary_op = self.get_summary_op(scope='train', name_prefix='train/')
@@ -296,11 +295,14 @@ class CapsNet(object):
                                    shape=(self.batch_size, cfg.input_size, cfg.input_size, cfg.input_channel))
             train_summary.append(tf.summary.image(name_prefix + 'reconstruction', recon_img))
             train_summary.append(tf.summary.scalar(name_prefix + 'accuracy', self.accuracy))
+            train_summary.append(tf.summary.histogram(name_prefix +'activations', self.activations))
+            train_summary.append(tf.summary.histogram(name_prefix +'poses', self.poses))
             # train_summary.append(tf.summary.scalar('learning_rate', self.learning_rate))
         elif scope == "test":
             train_summary.append(tf.summary.scalar(name_prefix + 'accuracy', self.accuracy))
             recon_img = tf.reshape(self.decoded,
                                    shape=(self.batch_size, cfg.input_size, cfg.input_size, cfg.input_channel))
             train_summary.append(tf.summary.image(name_prefix + 'reconstruction', recon_img))
-
+            train_summary.append(tf.summary.histogram(name_prefix +'activations', self.activations))
+            train_summary.append(tf.summary.histogram(name_prefix +'poses', self.poses))
         return tf.summary.merge(train_summary)

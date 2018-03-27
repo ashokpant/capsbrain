@@ -236,7 +236,7 @@ def create_inputs_att_faces_from_tfrecords(is_training):
 
 def load_att_faces(is_training, size=None):
     path = os.path.join('data', 'att_faces')
-    labels = read_file(os.path.join(path, 'labels.txt'))
+    labels = read_file(os.path.join(path, 'labels.txt'), sep=':')
 
     if is_training:
         filename = os.path.join(path, 'train.txt')
@@ -270,12 +270,12 @@ def create_inputs_casia_faces(is_training):
     return x, y
 
 
-def read_file(filename):
+def read_file(filename, sep=' '):
     X = []
     Y = []
     f = open(filename)
     for line in f.readlines():
-        tokens = line.split(' ')
+        tokens = line.split(sep)
         X.append(tokens[0])
         Y.append(tokens[1])
     return np.array(X), np.array(Y)
@@ -377,8 +377,8 @@ def get_create_inputs(dataset_name: str, is_train: bool, epochs: int, size=None)
                'smallNORB': lambda: create_inputs_norb(is_train, epochs),
                'cifar10': lambda: create_inputs_cifar10(is_train),
                'cifar100': lambda: create_inputs_cifar100(is_train),
-               # 'att_faces': lambda: create_inputs_att_faces(is_train, size=size),
-               'att_faces': lambda: create_inputs_att_faces_from_tfrecords(is_train),
+               'att_faces': lambda: create_inputs_att_faces(is_train, size=size),
+               # 'att_faces': lambda: create_inputs_att_faces_from_tfrecords(is_train),
                'casia': lambda: create_inputs_casia_faces(is_train)}
     return options[dataset_name]()
 
