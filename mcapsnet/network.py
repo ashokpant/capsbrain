@@ -203,14 +203,12 @@ class CapsNet(object):
                 self.decoded = decode(self.activations, self.one_hot_labels, self.batch_size)
                 self.global_step = tf.train.get_or_create_global_step()
 
-                self.loss = spread_loss(self.one_hot_labels, self.activations, num_train_batch, self.global_step,
-                                        name='spread_loss')
+                # self.loss = spread_loss(self.one_hot_labels, self.activations, num_train_batch, self.global_step,
+                #                         name='spread_loss')
                 self.m_op = tf.placeholder(dtype=tf.float32, shape=())
-                self.sp_loss =1.0;
-                self.reconstruction_loss =1.0;
-                # self.loss, self.sp_loss, self.reconstruction_loss = spread_loss1(self.one_hot_labels, self.activations,
-                #                                                                  self.images,
-                #                                                                  self.decoded, self.m_op)
+                self.loss, self.sp_loss, self.reconstruction_loss = spread_loss1(self.one_hot_labels, self.activations,
+                                                                                 self.images,
+                                                                                 self.decoded, self.m_op)
                 self.predictions = predictions(self.activations, self.batch_size, 'predictions')
                 self.accuracy = accuracy(self.predictions, self.labels, self.batch_size, "accuracy")
 
