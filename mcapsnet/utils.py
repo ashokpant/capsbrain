@@ -161,7 +161,8 @@ def create_inputs_norb(is_train: bool, epochs: int):
 def create_inputs_mnist(is_train):
     tr_x, tr_y = load_mnist(is_train)
     data_queue = tf.train.slice_input_producer([tr_x, tr_y], capacity=64 * 8)
-    x, y = tf.train.shuffle_batch(data_queue, num_threads=cfg.num_threads, batch_size=cfg.batch_size, capacity=cfg.batch_size * 64,
+    x, y = tf.train.shuffle_batch(data_queue, num_threads=cfg.num_threads, batch_size=cfg.batch_size,
+                                  capacity=cfg.batch_size * 64,
                                   min_after_dequeue=cfg.batch_size * 32, allow_smaller_final_batch=False)
     # x = tf.divide(x, 255.)
     x = slim.batch_norm(x, center=False, is_training=True, trainable=True)
@@ -172,7 +173,8 @@ def create_inputs_mnist(is_train):
 def create_inputs_fashion_mnist(is_train):
     tr_x, tr_y = load_mnist(is_train)
     data_queue = tf.train.slice_input_producer([tr_x, tr_y], capacity=64 * 8)
-    x, y = tf.train.shuffle_batch(data_queue, num_threads=cfg.num_threads, batch_size=cfg.batch_size, capacity=cfg.batch_size * 64,
+    x, y = tf.train.shuffle_batch(data_queue, num_threads=cfg.num_threads, batch_size=cfg.batch_size,
+                                  capacity=cfg.batch_size * 64,
                                   min_after_dequeue=cfg.batch_size * 32, allow_smaller_final_batch=False)
     # x = tf.divide(x, 255.)
     x = slim.batch_norm(x, center=False, is_training=True, trainable=True)
@@ -185,7 +187,8 @@ def create_inputs_cifar10(is_train):
     tr_y = tr_y.T[0]
 
     data_queue = tf.train.slice_input_producer([tr_x, tr_y], capacity=64 * 8)
-    x, y = tf.train.shuffle_batch(data_queue, num_threads=cfg.num_threads, batch_size=cfg.batch_size, capacity=cfg.batch_size * 64,
+    x, y = tf.train.shuffle_batch(data_queue, num_threads=cfg.num_threads, batch_size=cfg.batch_size,
+                                  capacity=cfg.batch_size * 64,
                                   min_after_dequeue=cfg.batch_size * 32, allow_smaller_final_batch=False)
 
     return x, y
@@ -205,7 +208,8 @@ def create_inputs_cifar100(is_train):
     tr_x = tr_x.astype(np.float32, copy=False)
     tr_y = tr_y.T[0]
     data_queue = tf.train.slice_input_producer([tr_x, tr_y], capacity=64 * 8)
-    x, y = tf.train.shuffle_batch(data_queue, num_threads=cfg.num_threads, batch_size=cfg.batch_size, capacity=cfg.batch_size * 64,
+    x, y = tf.train.shuffle_batch(data_queue, num_threads=cfg.num_threads, batch_size=cfg.batch_size,
+                                  capacity=cfg.batch_size * 64,
                                   min_after_dequeue=cfg.batch_size * 32, allow_smaller_final_batch=False)
     return x, y
 
@@ -214,7 +218,8 @@ def create_inputs_att_faces(is_train, size):
     tr_x, tr_y = load_att_faces(is_train, size)
     tr_x = tr_x.astype(np.float32, copy=False)
     data_queue = tf.train.slice_input_producer([tr_x, tr_y], capacity=64 * 8)
-    x, y = tf.train.shuffle_batch(data_queue, num_threads=cfg.num_threads, batch_size=cfg.batch_size, capacity=cfg.batch_size * 64,
+    x, y = tf.train.shuffle_batch(data_queue, num_threads=cfg.num_threads, batch_size=cfg.batch_size,
+                                  capacity=cfg.batch_size * 64,
                                   min_after_dequeue=cfg.batch_size * 32, allow_smaller_final_batch=False)
     return x, y
 
@@ -224,11 +229,13 @@ def create_inputs_att_faces_from_tfrecords(is_training):
     if is_training:
         filename = os.path.join(path, 'att_faces_train.tfrecords')
         shape = [cfg.input_size, cfg.input_size, cfg.input_channel]
-        x, y = read_tfrecord(filename=filename, image_shape=shape, batch_size=cfg.batch_size, num_threads=cfg.num_threads, epoches=cfg.epoch)
+        x, y = read_tfrecord(filename=filename, image_shape=shape, batch_size=cfg.batch_size,
+                             num_threads=cfg.num_threads, epoches=cfg.epoch)
     else:
         filename = os.path.join(path, 'att_faces_test.tfrecords')
         shape = [cfg.input_size, cfg.input_size, cfg.input_channel]
-        x, y = read_tfrecord(filename=filename, image_shape=shape, batch_size=cfg.batch_size, num_threads=cfg.num_threads, epoches=cfg.epoch)
+        x, y = read_tfrecord(filename=filename, image_shape=shape, batch_size=cfg.batch_size,
+                             num_threads=cfg.num_threads, epoches=cfg.epoch)
 
     x = slim.batch_norm(x, center=False, is_training=True, trainable=True)
     return x, y
@@ -260,11 +267,13 @@ def create_inputs_casia_faces(is_training):
     if is_training:
         filename = os.path.join(path, 'casia_train.tfrecords')
         shape = [cfg.input_size, cfg.input_size, cfg.input_channel]
-        x, y = read_tfrecord(filename=filename, image_shape=shape, batch_size=cfg.batch_size, num_threads=cfg.num_threads, epoches=cfg.epoch)
+        x, y = read_tfrecord(filename=filename, image_shape=shape, batch_size=cfg.batch_size,
+                             num_threads=cfg.num_threads, epoches=cfg.epoch)
     else:
         filename = os.path.join(path, 'casia_test.tfrecords')
         shape = [cfg.input_size, cfg.input_size, cfg.input_channel]
-        x, y = read_tfrecord(filename=filename, image_shape=shape, batch_size=cfg.batch_size, num_threads=cfg.num_threads, epoches=cfg.epoch)
+        x, y = read_tfrecord(filename=filename, image_shape=shape, batch_size=cfg.batch_size,
+                             num_threads=cfg.num_threads, epoches=cfg.epoch)
 
     x = slim.batch_norm(x, center=False, is_training=True, trainable=True)
     return x, y

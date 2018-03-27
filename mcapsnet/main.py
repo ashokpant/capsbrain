@@ -128,7 +128,7 @@ def evaluation(scope='test'):
         data = get_create_inputs(cfg.dataset, False, cfg.epoch, size=(cfg.input_size, cfg.input_size))
         num_batch = int(cfg.test_size / cfg.batch_size)
 
-    model = CapsNet(images=None, labels=None,  batch_size=cfg.batch_size,  num_train_batch=None,  is_training=False)
+    model = CapsNet(images=None, labels=None, batch_size=cfg.batch_size, num_train_batch=None, is_training=False)
 
     with model.graph.as_default():
         if scope == 'train':

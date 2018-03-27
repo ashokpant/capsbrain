@@ -1,6 +1,7 @@
 import daiquiri
-import tensorflow as tf
 import numpy as np
+import tensorflow as tf
+
 from mcapsnet.config import cfg
 from mcapsnet.layers import conv2d, primary_caps, conv_capsule, class_capsules
 
@@ -117,7 +118,6 @@ def spread_loss(labels, activations, iterations_per_epoch, global_step, name):
         mask_t = tf.equal(labels, 1)  # Mask for the true label
         mask_i = tf.equal(labels, 0)  # Mask for the non-true label
 
-
         # Activation for the true label
         # activations_t (?, 1)
         activations_t = tf.reshape(
@@ -206,8 +206,9 @@ class CapsNet(object):
                 # self.loss = spread_loss(self.one_hot_labels, self.activations, num_train_batch, self.global_step,
                 #                         name='spread_loss')
                 self.m_op = tf.placeholder(dtype=tf.float32, shape=())
-                self.loss, self.sp_loss, self.reconstruction_loss = spread_loss1(self.one_hot_labels, self.activations, self.images,
-                                                               self.decoded, self.m_op)
+                self.loss, self.sp_loss, self.reconstruction_loss = spread_loss1(self.one_hot_labels, self.activations,
+                                                                                 self.images,
+                                                                                 self.decoded, self.m_op)
                 self.predictions = predictions(self.activations, self.batch_size, 'predictions')
                 self.accuracy = accuracy(self.predictions, self.labels, self.batch_size, "accuracy")
 
@@ -295,14 +296,9 @@ class CapsNet(object):
                                    shape=(self.batch_size, cfg.input_size, cfg.input_size, cfg.input_channel))
             train_summary.append(tf.summary.image(name_prefix + 'reconstruction', recon_img))
             train_summary.append(tf.summary.scalar(name_prefix + 'accuracy', self.accuracy))
-            train_summary.append(tf.summary.histogram(name_prefix +'activations', self.activations))
-            train_summary.append(tf.summary.histogram(name_prefix +'poses', self.poses))
-            # train_summary.append(tf.summary.scalar('learning_rate', self.learning_rate))
         elif scope == "test":
             train_summary.append(tf.summary.scalar(name_prefix + 'accuracy', self.accuracy))
             recon_img = tf.reshape(self.decoded,
                                    shape=(self.batch_size, cfg.input_size, cfg.input_size, cfg.input_channel))
             train_summary.append(tf.summary.image(name_prefix + 'reconstruction', recon_img))
-            train_summary.append(tf.summary.histogram(name_prefix +'activations', self.activations))
-            train_summary.append(tf.summary.histogram(name_prefix +'poses', self.poses))
         return tf.summary.merge(train_summary)
