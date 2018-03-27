@@ -190,7 +190,7 @@ def create_inputs_cifar10(is_train):
     x, y = tf.train.shuffle_batch(data_queue, num_threads=cfg.num_threads, batch_size=cfg.batch_size,
                                   capacity=cfg.batch_size * 64,
                                   min_after_dequeue=cfg.batch_size * 32, allow_smaller_final_batch=False)
-
+    x = slim.batch_norm(x, center=False, is_training=True, trainable=True)
     return x, y
 
 
@@ -211,6 +211,7 @@ def create_inputs_cifar100(is_train):
     x, y = tf.train.shuffle_batch(data_queue, num_threads=cfg.num_threads, batch_size=cfg.batch_size,
                                   capacity=cfg.batch_size * 64,
                                   min_after_dequeue=cfg.batch_size * 32, allow_smaller_final_batch=False)
+    x = slim.batch_norm(x, center=False, is_training=True, trainable=True)
     return x, y
 
 
@@ -221,6 +222,7 @@ def create_inputs_att_faces(is_train, size):
     x, y = tf.train.shuffle_batch(data_queue, num_threads=cfg.num_threads, batch_size=cfg.batch_size,
                                   capacity=cfg.batch_size * 64,
                                   min_after_dequeue=cfg.batch_size * 32, allow_smaller_final_batch=False)
+    x = slim.batch_norm(x, center=False, is_training=True, trainable=True)
     return x, y
 
 
