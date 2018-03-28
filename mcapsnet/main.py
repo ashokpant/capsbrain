@@ -101,7 +101,7 @@ def train():
                     sess.close()
                     sys.exit()
                 except tf.errors.InvalidArgumentError as e:
-                    logger.warning('{} iteration contains NaN gradients. Discard. Error: {}'.format(step, e))
+                    logger.warning('{} iteration contains NaN gradients. Discarding...'.format(step))
                     continue
 
                 if (g_step + 1) % cfg.save_freq == 0:
