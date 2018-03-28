@@ -9,38 +9,28 @@ import scipy
 import tensorflow as tf
 from keras import backend as K
 from keras.datasets import cifar10, cifar100
-from scipy.misc import imread
 from sklearn.externals.joblib import Parallel, delayed
 from tensorflow.contrib import slim
 
-from mcapsnet.config import cfg
+from config import cfg
 from tfrecord.tfrecord_reader import read_tfrecord
 
 daiquiri.setup(level=logging.DEBUG)
 logger = daiquiri.getLogger(__name__)
 
 
-def load_mnist1(batch_size, is_training=True):
+def load_mnist(is_training=True):
     path = os.path.join('data', 'mnist')
     if is_training:
         fd = open(os.path.join(path, 'train-images-idx3-ubyte'))
         loaded = np.fromfile(file=fd, dtype=np.uint8)
-        trainX = loaded[16:].reshape((60000, 28, 28, 1)).astype(np.float32)
+        trX = loaded[16:].reshape((60000, 28, 28, 1)).astype(np.float32)
 
         fd = open(os.path.join(path, 'train-labels-idx1-ubyte'))
         loaded = np.fromfile(file=fd, dtype=np.uint8)
-        trainY = loaded[8:].reshape((60000)).astype(np.int32)
+        trY = loaded[8:].reshape((60000)).astype(np.int32)
 
-        trX = trainX[:55000] / 255.
-        trY = trainY[:55000]
-
-        valX = trainX[55000:, ] / 255.
-        valY = trainY[55000:]
-
-        num_tr_batch = 55000 // batch_size
-        num_val_batch = 5000 // batch_size
-
-        return trX, trY, num_tr_batch, valX, valY, num_val_batch
+        return trX, trY
     else:
         fd = open(os.path.join(path, 't10k-images-idx3-ubyte'))
         loaded = np.fromfile(file=fd, dtype=np.uint8)
@@ -50,31 +40,21 @@ def load_mnist1(batch_size, is_training=True):
         loaded = np.fromfile(file=fd, dtype=np.uint8)
         teY = loaded[8:].reshape((10000)).astype(np.int32)
 
-        num_te_batch = 10000 // batch_size
-        return teX / 255., teY, num_te_batch
+        return teX, teY
 
 
-def load_fashion_mnist1(batch_size, is_training=True):
+def load_fashion_mnist(is_training=True):
     path = os.path.join('data', 'fashion-mnist')
     if is_training:
         fd = open(os.path.join(path, 'train-images-idx3-ubyte'))
         loaded = np.fromfile(file=fd, dtype=np.uint8)
-        trainX = loaded[16:].reshape((60000, 28, 28, 1)).astype(np.float32)
+        trX = loaded[16:].reshape((60000, 28, 28, 1)).astype(np.float32)
 
         fd = open(os.path.join(path, 'train-labels-idx1-ubyte'))
         loaded = np.fromfile(file=fd, dtype=np.uint8)
-        trainY = loaded[8:].reshape((60000)).astype(np.int32)
+        trY = loaded[8:].reshape((60000)).astype(np.int32)
 
-        trX = trainX[:55000] / 255.
-        trY = trainY[:55000]
-
-        valX = trainX[55000:, ] / 255.
-        valY = trainY[55000:]
-
-        num_tr_batch = 55000 // batch_size
-        num_val_batch = 5000 // batch_size
-
-        return trX, trY, num_tr_batch, valX, valY, num_val_batch
+        return trX, trY
     else:
         fd = open(os.path.join(path, 't10k-images-idx3-ubyte'))
         loaded = np.fromfile(file=fd, dtype=np.uint8)
@@ -83,9 +63,7 @@ def load_fashion_mnist1(batch_size, is_training=True):
         fd = open(os.path.join(path, 't10k-labels-idx1-ubyte'))
         loaded = np.fromfile(file=fd, dtype=np.uint8)
         teY = loaded[8:].reshape((10000)).astype(np.int32)
-
-        num_te_batch = 10000 // batch_size
-        return teX / 255., teY, num_te_batch
+        return teX, teY
 
 
 def save_images(imgs, size, path):
@@ -309,69 +287,6 @@ def load_cifar100(is_training):
         return cifar100.load_data(label_mode='fine')[0]
     else:
         return cifar100.load_data(label_mode='fine')[1]
-
-
-def load_mnist(is_training=True):
-    path = os.path.join('data', 'mnist')
-    fd = open(os.path.join(path, 'train-images-idx3-ubyte'))
-    loaded = np.fromfile(file=fd, dtype=np.uint8)
-    trX = loaded[16:].reshape((60000, 28, 28, 1)).astype(np.float32)
-
-    fd = open(os.path.join(path, 'train-labels-idx1-ubyte'))
-    loaded = np.fromfile(file=fd, dtype=np.uint8)
-    trY = loaded[8:].reshape((60000)).astype(np.int32)
-
-    fd = open(os.path.join(path, 't10k-images-idx3-ubyte'))
-    loaded = np.fromfile(file=fd, dtype=np.uint8)
-    teX = loaded[16:].reshape((10000, 28, 28, 1)).astype(np.float32)
-
-    fd = open(os.path.join(path, 't10k-labels-idx1-ubyte'))
-    loaded = np.fromfile(file=fd, dtype=np.uint8)
-    teY = loaded[8:].reshape((10000)).astype(np.int32)
-
-    # normalization and convert to a tensor [60000, 28, 28, 1]
-    # trX = tf.convert_to_tensor(trX, tf.float32)
-    # teX = tf.convert_to_tensor(teX, tf.float32)
-
-    # => [num_samples, 10]
-    # trY = tf.one_hot(trY, depth=10, axis=1, dtype=tf.float32)
-    # teY = tf.one_hot(teY, depth=10, axis=1, dtype=tf.float32)
-    if is_training:
-        return trX, trY
-    else:
-        return teX, teY
-
-
-def load_fashion_mnist(is_training=True):
-    path = os.path.join('data', 'fashion_mnist')
-    fd = open(os.path.join(path, 'train-images-idx3-ubyte'))
-    loaded = np.fromfile(file=fd, dtype=np.uint8)
-    trX = loaded[16:].reshape((60000, 28, 28, 1)).astype(np.float32)
-
-    fd = open(os.path.join(path, 'train-labels-idx1-ubyte'))
-    loaded = np.fromfile(file=fd, dtype=np.uint8)
-    trY = loaded[8:].reshape((60000)).astype(np.int32)
-
-    fd = open(os.path.join(path, 't10k-images-idx3-ubyte'))
-    loaded = np.fromfile(file=fd, dtype=np.uint8)
-    teX = loaded[16:].reshape((10000, 28, 28, 1)).astype(np.float32)
-
-    fd = open(os.path.join(path, 't10k-labels-idx1-ubyte'))
-    loaded = np.fromfile(file=fd, dtype=np.uint8)
-    teY = loaded[8:].reshape((10000)).astype(np.int32)
-
-    # normalization and convert to a tensor [60000, 28, 28, 1]
-    # trX = tf.convert_to_tensor(trX, tf.float32)
-    # teX = tf.convert_to_tensor(teX, tf.float32)
-
-    # => [num_samples, 10]
-    # trY = tf.one_hot(trY, depth=10, axis=1, dtype=tf.float32)
-    # teY = tf.one_hot(teY, depth=10, axis=1, dtype=tf.float32)
-
-    if is_training:
-        return trX, trY
-    else:
-        return teX, teY
 
 
 def load_data(dataset_name: str, is_train: bool):

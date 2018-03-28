@@ -12,10 +12,11 @@ import numpy as np
 import tensorflow as tf
 from tqdm import tqdm
 
-from mcapsnet import config, utils
-from mcapsnet.config import cfg
-from mcapsnet.network import CapsNet
-from mcapsnet.utils import get_create_inputs
+import utils
+import config
+from config import cfg
+from core.network import CapsNet
+from utils import get_create_inputs
 
 slim = tf.contrib.slim
 
@@ -66,8 +67,8 @@ def train():
         threads = tf.train.start_queue_runners(sess=sess, coord=sv.coord)
 
         # Main loop
-        m_min = 0.2
-        m_max = 0.9
+        m_min = cfg.m_min
+        m_max = cfg.m_max
         m = m_min
         for epoch in range(cfg.epoch):
             logger.info("Training for epoch {}/{}:".format(epoch, cfg.epoch))

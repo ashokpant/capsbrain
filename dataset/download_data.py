@@ -33,7 +33,8 @@ def download_and_uncompress_zip(URL, dataset_dir, force=False):
     extract_to = os.path.splitext(filepath)[0]
 
     def download_progress(count, block_size, total_size):
-        sys.stdout.write("\r>> Downloading %s %.1f%%" % (filename, float(count * block_size) / float(total_size) * 100.))
+        sys.stdout.write(
+            "\r>> Downloading %s %.1f%%" % (filename, float(count * block_size) / float(total_size) * 100.))
         sys.stdout.flush()
 
     if not force and os.path.exists(filepath):
@@ -67,8 +68,10 @@ def start_download(dataset, save_to, force):
     else:
         raise Exception("Invalid dataset name! please check it: ", dataset)
 
+
 if __name__ == '__main__':
     import argparse
+
     parser = argparse.ArgumentParser('Script for automatically downloading datasets')
     parser.add_argument("--dataset", default='mnist', choices=['mnist', 'fashion-mnist', 'smallNORB'])
     save_to = os.path.join('data', 'mnist')

@@ -2,8 +2,8 @@ import daiquiri
 import numpy as np
 import tensorflow as tf
 
-from mcapsnet.config import cfg
-from mcapsnet.layers import conv2d, primary_caps, conv_capsule, class_capsules
+from config import cfg
+from core.layers import conv2d, primary_caps, conv_capsule, class_capsules
 
 slim = tf.contrib.slim
 logger = daiquiri.getLogger(__name__)
@@ -282,40 +282,6 @@ class CapsNet(object):
 
                 self.summary_op = self.get_summary_op
                 self.saver = tf.train.Saver(max_to_keep=5)
-
-    def loss(self):
-        # 1. The margin loss
-
-        # [batch_size, 10, 1, 1]
-        # max_l = max(0, m_plus-||v_c||)^2
-        max_l = tf.square(tf.maximum(0., cfg.m_plus - self.v_length))
-        # max_r = max(0, ||v_c||-m_minus)^2
-        max_r = tf.square(tf.maximum(0., self.v_length - cfg.m_minus))
-        assert max_l.get_shape() == [cfg.batch_size, 10, 1, 1]
-
-        # reshape: [batch_size, 10, 1, 1] => [batch_size, 10]
-        max_l = tf.reshape(max_l, shape=(cfg.batch_size, -1))
-        max_r = tf.reshape(max_r, shape=(cfg.batch_size, -1))
-
-        # calc T_c: [batch_size, 10]
-        # T_c = Y, is my understanding correct? Try it.
-        T_c = self.Y
-        # [batch_size, 10], element-wise multiply
-        L_c = T_c * max_l + cfg.lambda_val * (1 - T_c) * max_r
-
-        self.margin_loss = tf.reduce_mean(tf.reduce_sum(L_c, axis=1))
-
-        # 2. The reconstruction loss
-        orgin = tf.reshape(self.X, shape=(cfg.batch_size, -1))
-        squared = tf.square(self.decoded - orgin)
-        self.reconstruction_err = tf.reduce_mean(squared)
-
-        # 3. Total loss
-        # The paper uses sum of squared error as reconstruction error, but we
-        # have used reduce_mean in `# 2 The reconstruction loss` to calculate
-        # mean squared error. In order to keep in line with the paper,the
-        # regularization scale should be 0.0005*784=0.392
-        self.total_loss = self.margin_loss + cfg.regularization_scale * self.reconstruction_err
 
     def get_summary_op(self, scope, name_prefix=''):
         train_summary = []

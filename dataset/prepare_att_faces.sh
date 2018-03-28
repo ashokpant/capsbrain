@@ -1,6 +1,6 @@
 #!/bin/bash
 
-dir=./att_faces
+dir=./data/att_faces
 
 if [ ! -d "$dir" ]; then
     mkdir $dir
