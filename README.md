@@ -17,24 +17,24 @@
 
 ### Other Implementations
 - TensorFlow:
-  - [www0wwwjs1/Matrix-Capsules-EM-Tensorflow](https://github.com/www0wwwjs1/Matrix-Capsules-EM-Tensorflow)
-  - [naturomics/CapsNet-Tensorflow](https://github.com/naturomics/CapsNet-Tensorflow.git)   
-  - [InnerPeace-Wu/CapsNet-tensorflow](https://github.com/InnerPeace-Wu/CapsNet-tensorflow)   
-  - [chrislybaer/capsules-tensorflow](https://github.com/chrislybaer/capsules-tensorflow)
-  - [Sarasra/models](https://github.com/Sarasra/models)
+    - [www0wwwjs1/Matrix-Capsules-EM-Tensorflow](https://github.com/www0wwwjs1/Matrix-Capsules-EM-Tensorflow)
+    - [naturomics/CapsNet-Tensorflow](https://github.com/naturomics/CapsNet-Tensorflow.git)   
+    - [InnerPeace-Wu/CapsNet-tensorflow](https://github.com/InnerPeace-Wu/CapsNet-tensorflow)   
+    - [chrislybaer/capsules-tensorflow](https://github.com/chrislybaer/capsules-tensorflow)
+    - [Sarasra/models](https://github.com/Sarasra/models)
   
 - PyTorch:
-  - [XifengGuo/CapsNet-Pytorch](https://github.com/XifengGuo/CapsNet-Pytorch)
-  - [timomernick/pytorch-capsule](https://github.com/timomernick/pytorch-capsule)
-  - [gram-ai/capsule-networks](https://github.com/gram-ai/capsule-networks)
-  - [nishnik/CapsNet-PyTorch](https://github.com/nishnik/CapsNet-PyTorch.git)
-  - [leftthomas/CapsNet](https://github.com/leftthomas/CapsNet)
+    - [XifengGuo/CapsNet-Pytorch](https://github.com/XifengGuo/CapsNet-Pytorch)
+    - [timomernick/pytorch-capsule](https://github.com/timomernick/pytorch-capsule)
+    - [gram-ai/capsule-networks](https://github.com/gram-ai/capsule-networks)
+    - [nishnik/CapsNet-PyTorch](https://github.com/nishnik/CapsNet-PyTorch.git)
+    - [leftthomas/CapsNet](https://github.com/leftthomas/CapsNet)
 
 - MXNet:
-  - [AaronLeong/CapsNet_Mxnet](https://github.com/AaronLeong/CapsNet_Mxnet)
+    - [AaronLeong/CapsNet_Mxnet](https://github.com/AaronLeong/CapsNet_Mxnet)
   
 - Chainer:
-  - [soskek/dynamic_routing_between_capsules](https://github.com/soskek/dynamic_routing_between_capsules)
+    - [soskek/dynamic_routing_between_capsules](https://github.com/soskek/dynamic_routing_between_capsules)
 
 - Matlab:
-  - [yechengxi/LightCapsNet](https://github.com/yechengxi/LightCapsNet)
+    - [yechengxi/LightCapsNet](https://github.com/yechengxi/LightCapsNet)
