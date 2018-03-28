@@ -179,6 +179,39 @@ def spread_loss1(hot_labels, activations, images, decoded, m):
     return total_loss, sp_loss, reconstruction_loss
 
 
+def compute_and_apply_gradient(optimizer, loss, global_step, nan_check=True, use_slim_create_train_op=False,
+                               clip_gradient_norm=1.0):
+    """
+    Equivalent to optimizer.minimize(self.loss, global_step=self.global_step)
+    """
+    if optimizer is None:
+        optimizer = tf.train.AdamOptimizer(learning_rate=0.0001)
+    if use_slim_create_train_op:
+        return slim.learning.create_train_op(loss, optimizer, global_step=global_step,
+                                             clip_gradient_norm=clip_gradient_norm)
+    else:
+        if nan_check:
+            # Compute gradient.
+            grad = optimizer.compute_gradients(loss)
+            # See: https://stackoverflow.com/questions/40701712/how-to-check-nan-in-gradients-in-tensorflow-when-updating
+            grad_check = [tf.check_numerics(g, message='Gradient NaN Found!')
+                          for g, _ in grad if g is not None] + [tf.check_numerics(loss, message='Loss NaN Found')]
+
+            # Clip gradients.
+            if clip_gradient_norm > 0:
+                with tf.variable_scope('clip_grads') as scope:
+                    grad = slim.learning.clip_gradient_norms(grad, clip_gradient_norm)
+
+            # Apply gradient.
+            with tf.control_dependencies(grad_check):
+                update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+                with tf.control_dependencies(update_ops):
+                    train_op = optimizer.apply_gradients(grad, global_step=global_step)
+                    return train_op
+        else:
+            return optimizer.minimize(loss, global_step=global_step)
+
+
 class CapsNet(object):
     def __init__(self, images, labels, batch_size, num_train_batch=None, is_training=True):
         self.graph = tf.get_default_graph()
@@ -215,11 +248,9 @@ class CapsNet(object):
                 self.lrn_rate = tf.maximum(tf.train.exponential_decay(
                     1e-3, self.global_step, 1000, 0.8), 1e-5)
 
-                self.optimizer = tf.train.AdamOptimizer(learning_rate=0.0001)
-                self.train_op = self.optimizer.minimize(self.loss, global_step=self.global_step)
-
-                # self.train_op = tf.learning.create_train_op(self.loss, self.optimizer, global_step=self.global_step,
-                # clip_gradient_norm=4.0)
+                self.optimizer = tf.train.AdamOptimizer(learning_rate=self.lrn_rate)
+                self.train_op = compute_and_apply_gradient(optimizer=self.optimizer, loss=self.loss,
+                                                           global_step=self.global_step)
                 self.summary_op = self.get_summary_op(scope='train', name_prefix='train/')
 
                 self.saver = tf.train.Saver(max_to_keep=5)
