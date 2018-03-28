@@ -4,14 +4,9 @@
 # Reference: https://intellij-support.jetbrains.com/hc/en-us/articles/206544839
 
 outputs
-data/mnist
-data/att_faces
-data/cifar_10
-data/cifar_100
-data/fashion_mnist
-data/smallNORB
+data/*
 *.tfrecords
-
+examples
 # User-specific stuff:
 .idea
 .idea/**/workspace.xml
@@ -98,7 +93,7 @@ MANIFEST
 pip-log.txt
 pip-delete-this-directory.txt
 
-# Unit test / coverage reports
+# Unit examples / coverage reports
 htmlcov/
 .tox/
 .coverage
