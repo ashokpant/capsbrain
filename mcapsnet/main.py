@@ -6,7 +6,7 @@
 import logging
 import os
 import time
-
+import sys
 import daiquiri
 import numpy as np
 import tensorflow as tf
@@ -78,23 +78,31 @@ def train():
                 tic = time.time()
                 g_step = epoch * num_train_batch + step
 
-                if g_step % cfg.train_sum_freq == 0:
-                    _, loss_value, train_acc, summary_str = sess.run(
-                        [model.train_op, model.loss, model.accuracy, model.summary_op], feed_dict={model.m_op: np.float32(m)})
-                    assert not np.isnan(loss_value), 'Something wrong! loss is nan...'
-                    sv.summary_writer.add_summary(summary_str, g_step)
-                    logger.info(
-                        '{} iteration finises in {:.4f} second,  loss={:.4f}, train_acc={:.2f}'.format(step, (
-                                time.time() - tic),
-                                                                                                       loss_value,
-                                                                                                       train_acc))
-                else:
-                    _, loss_value, summary_str = sess.run([model.train_op, model.loss, model.summary_op],
-                                                          feed_dict={model.m_op: m})
-                    sv.summary_writer.add_summary(summary_str, g_step)
-                    logger.info(
-                        '{} iteration finises in {:.4f} second,  loss={:.4f}'.format(step, time.time() - tic,
-                                                                                     loss_value))
+                try:
+                    if g_step % cfg.train_sum_freq == 0:
+                        _, loss_value, train_acc, summary_str = sess.run(
+                            [model.train_op, model.loss, model.accuracy, model.summary_op],
+                            feed_dict={model.m_op: np.float32(m)})
+                        assert not np.isnan(loss_value), 'Something wrong! loss is nan...'
+                        sv.summary_writer.add_summary(summary_str, g_step)
+                        logger.info(
+                            '{} iteration finises in {:.4f} second,  loss={:.4f}, train_acc={:.2f}'.format(step, (
+                                    time.time() - tic),
+                                                                                                           loss_value,
+                                                                                                           train_acc))
+                    else:
+                        _, loss_value, summary_str = sess.run([model.train_op, model.loss, model.summary_op],
+                                                              feed_dict={model.m_op: m})
+                        sv.summary_writer.add_summary(summary_str, g_step)
+                        logger.info(
+                            '{} iteration finises in {:.4f} second,  loss={:.4f}'.format(step, time.time() - tic,
+                                                                                         loss_value))
+                except KeyboardInterrupt:
+                    sess.close()
+                    sys.exit()
+                except tf.errors.InvalidArgumentError as e:
+                    logger.warning('{} iteration contains NaN gradients. Discard. Error: {}'.format(step, e))
+                    continue
 
                 if (g_step + 1) % cfg.save_freq == 0:
                     """Save model periodically"""

@@ -43,7 +43,7 @@ flags.DEFINE_integer('D', 16, 'number of channels in output from ConvCaps2')
 ############################
 #   environment setting    #
 ############################
-flags.DEFINE_string('dataset', 'mnist',
+flags.DEFINE_string('dataset', 'att_faces',
                     'The name of dataset [mnist, fashion_mnist, smallNORB, cifar10, cifar100, att_faces')
 flags.DEFINE_string('dataset_dir', None, 'Dataset dir')
 flags.DEFINE_string('num_class', None, 'Number of classes')
@@ -123,8 +123,6 @@ def update_cfg(dataset):
         cfg.input_channel = 3
         cfg.train_size = 789530
         cfg.test_size = 197382
-        cfg.batch_size = 16
-        cfg.num_threads = 16
     else:
         raise KeyError(dataset)
 
