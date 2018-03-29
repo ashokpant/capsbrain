@@ -115,7 +115,7 @@ def update_cfg(dataset):
         cfg.batch_size = 16
     elif dataset == "casia":
         cfg.num_class = 10575
-        cfg.input_size = 32
+        cfg.input_size = 28
         cfg.input_channel = 3
         cfg.train_size = 789530
         cfg.test_size = 197382
