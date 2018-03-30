@@ -165,7 +165,7 @@ def get_filenames_and_classes(dataset_dir, max_classes=0, min_samples_per_class=
         c += 1
 
     id2label = {v: k for k, v in label2id.items()}
-
+    print("Number of classes: {}".format(c))
     return np.array(total_files), id2label, label2id
 
 

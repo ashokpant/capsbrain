@@ -72,3 +72,4 @@ if __name__ == '__main__':
 
 # Run: python tfrecord/tfrecord_writer.py --dataset_dir data/att_faces --tfrecord_file att_faces --force True --image_size 64 --image_size 64 --test_ratio 0.1 --max_classes 0 --min_samples_per_class 0
 
+#python tfrecord_writer.py --dataset_dir /data/datasets/CASIA-WebFace/Normalized_Faces/webface/100/ --tfrecord_file  /data/datasets/CASIA-WebFace/casia --force True --image_size 32 --image_size 32 --test_ratio 0.2 --max_classes 1000 --min_samples_per_class 1000
