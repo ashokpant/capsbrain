@@ -10,6 +10,7 @@ import sys
 
 import numpy as np
 import tensorflow as tf
+from boto.kinesis.exceptions import InvalidArgumentException
 
 slim = tf.contrib.slim
 import cv2
@@ -122,7 +123,7 @@ class ImageReader(object):
         return image
 
 
-def get_filenames_and_classes(dataset_dir):
+def get_filenames_and_classes(dataset_dir, max_classes=0, min_samples_per_class=0):
     """Returns a list of filenames and inferred class names.
   Args:
     dataset_dir: A directory containing a set of subdirectories representing
@@ -133,23 +134,39 @@ def get_filenames_and_classes(dataset_dir):
   """
     folders = [name for name in os.listdir(dataset_dir) if
                os.path.isdir(os.path.join(dataset_dir, name))]
+
+    if len(folders) == 0:
+        raise ValueError(dataset_dir+ " does not contain valid sub directories.")
     directories = []
     for folder in folders:
         directories.append(os.path.join(dataset_dir, folder))
 
     folders = sorted(folders)
-    label2id = dict(zip(folders, range(len(folders))))
-    id2label = {v: k for k, v in label2id.items()}
+    # label2id = dict(zip(folders, range(len(folders))))
+    label2id = {}
 
-    files = []
+    i = 0
+    c = 1
+    total_files = []
     for folder in folders:
         dir = os.path.join(dataset_dir, folder)
-        id = label2id[folder]
-        for file in os.listdir(dir):
-            path = os.path.join(dir, file)
-            files.append([path, id])
+        files = os.listdir(dir)
+        if min_samples_per_class > 0 and len(files) < min_samples_per_class:
+            continue
 
-    return np.array(files), id2label, label2id
+        for file in files:
+            path = os.path.join(dir, file)
+            total_files.append([path, i])
+        label2id[folder] = i
+        i += 1
+
+        if 0 < max_classes <= c:
+            break
+        c += 1
+
+    id2label = {v: k for k, v in label2id.items()}
+
+    return np.array(total_files), id2label, label2id
 
 
 def get_dataset_filename(dataset_dir, split_name, shard_id, tfrecord_filename, num_shards):
