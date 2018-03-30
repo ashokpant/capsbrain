@@ -125,11 +125,17 @@ def update_cfg(dataset):
         # cfg.train_size = 25660
         # cfg.test_size = 6414
 
-        cfg.num_class = 1000
+        # cfg.num_class = 1000
+        # cfg.input_size = 32
+        # cfg.input_channel = 3
+        # cfg.train_size = 211220
+        # cfg.test_size = 52804
+
+        cfg.num_class = 100
         cfg.input_size = 32
         cfg.input_channel = 3
-        cfg.train_size = 211220
-        cfg.test_size = 52804
+        cfg.train_size = 28679
+        cfg.test_size = 7169
 
     else:
         raise KeyError(dataset)
