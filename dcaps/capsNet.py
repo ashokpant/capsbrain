@@ -6,7 +6,7 @@ E-mail: naturomics.liao@gmail.com
 
 import tensorflow as tf
 
-from capsule.capsLayer import CapsLayer
+from dcaps.capsLayer import CapsLayer
 from config import cfg
 from utils import softmax
 from utils import reduce_sum
@@ -150,4 +150,4 @@ class CapsNet(object):
         self.train_summary = tf.summary.merge(train_summary)
 
         correct_prediction = tf.equal(tf.to_int32(self.labels), self.argmax_idx)
-        self.accuracy = tf.reduce_sum(tf.cast(correct_prediction, tf.float32))
+        self.accuracy = tf.reduce_sum(tf.cast(correct_prediction, tf.float32))/self.batch_size

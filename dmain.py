@@ -1,14 +1,14 @@
 import logging
 import os
 import sys
-
+import time
 import daiquiri
 import numpy as np
 import tensorflow as tf
 from tqdm import tqdm
 
 import config
-from capsule.capsNet import CapsNet
+from dcaps.capsNet import CapsNet
 from config import cfg
 from utils import get_create_inputs
 
@@ -61,6 +61,7 @@ def train():
                 print('supervisor stoped!')
                 break
             for step in tqdm(range(num_train_batch), total=num_train_batch, ncols=70, leave=False, unit='b'):
+                tic = time.time()
                 global_step = epoch * num_train_batch + step
                 try:
                     if global_step % cfg.train_sum_freq == 0:
@@ -68,6 +69,9 @@ def train():
                             [model.train_op, model.total_loss, model.accuracy, model.train_summary])
                         assert not np.isnan(loss), 'Something wrong! loss is nan...'
                         supervisor.summary_writer.add_summary(summary_str, global_step)
+                        logger.info(
+                            '{} iteration finises in {:.4f} second,  loss={:.4f}, train_acc={:.2f}'.format(step, (
+                                    time.time() - tic),loss,train_acc))
                     else:
                         sess.run(model.train_op)
                 except KeyboardInterrupt:
