@@ -80,7 +80,6 @@ def update_cfg(dataset):
         cfg.input_channel = 1
         cfg.train_size = 60000
         cfg.test_size = 10000
-        cfg.batch_size = 16
     elif dataset == "fashion_mnist":
         cfg.num_class = 10
         cfg.input_size = 28
@@ -114,11 +113,24 @@ def update_cfg(dataset):
         cfg.test_size = 80
         cfg.batch_size = 16
     elif dataset == "casia":
-        cfg.num_class = 10575
-        cfg.input_size = 28
+        # cfg.num_class = 10575
+        # cfg.input_size = 28
+        # cfg.input_channel = 3
+        # cfg.train_size = 789530
+        # cfg.test_size = 197382
+
+        # cfg.num_class = 500
+        # cfg.input_size = 32
+        # cfg.input_channel = 3
+        # cfg.train_size = 25660
+        # cfg.test_size = 6414
+
+        cfg.num_class = 1000
+        cfg.input_size = 32
         cfg.input_channel = 3
-        cfg.train_size = 789530
-        cfg.test_size = 197382
+        cfg.train_size = 25660
+        cfg.test_size = 6414
+
     else:
         raise KeyError(dataset)
 
