@@ -1,12 +1,9 @@
-import copy
-import re
-
 import daiquiri
 import numpy as np
 import tensorflow as tf
 
 from config import cfg
-from core.layers import conv2d, primary_caps, conv_capsule, class_capsules
+from mcaps.layers import conv2d, primary_caps, conv_capsule, class_capsules
 
 slim = tf.contrib.slim
 logger = daiquiri.getLogger(__name__)
@@ -215,79 +212,10 @@ def compute_and_apply_gradient(optimizer, loss, global_step, nan_check=True, use
             return optimizer.minimize(loss, global_step=global_step)
 
 
-def tower_loss(x, y, labels, m_op, batch_size, scope, reuse_variables=None):
-    with tf.variable_scope(tf.get_variable_scope(), reuse=reuse_variables):
-        poses, activations = capsules_net(x, num_classes=cfg.num_class, iterations=3,
-                                                    batch_size=batch_size, name='capsules_em')
-        decoded = decode(activations, y, batch_size)
-
-        loss, sp_loss, reconstruction_loss = spread_loss1(y, activations,
-                                                                         x,
-                                                                         decoded, m_op)
-        prediction = predictions(activations, batch_size, 'predictions')
-        acc = accuracy(prediction, labels, batch_size, "accuracy")
-
-        tf.losses.add_loss(loss)
-
-    loss = tf.get_collection(tf.GraphKeys.LOSSES, scope)[0]
-    loss_name = re.sub('%s_[0-9]*/' % 'tower_', '', loss.op.name)
-    tf.summary.scalar(loss_name, loss)
-    sp_loss_name = re.sub('%s_[0-9]*/' % 'tower_', '', sp_loss.op.name)
-    tf.summary.scalar(sp_loss_name, sp_loss)
-    reconstruction_loss_name = re.sub('%s_[0-9]*/' % 'tower_', '', reconstruction_loss.op.name)
-    tf.summary.scalar(reconstruction_loss_name, reconstruction_loss)
-
-    recon_img = tf.reshape(decoded,
-                           shape=(batch_size, cfg.input_size, cfg.input_size, cfg.input_channel))
-
-    recon_img_name = re.sub('%s_[0-9]*/' % 'tower_', '', recon_img.op.name)
-    tf.summary.image(recon_img_name, recon_img)
-    acc_name = re.sub('%s_[0-9]*/' % 'tower_', '', acc.op.name)
-    tf.summary.image(acc_name, acc)
-
-    return loss, sp_loss, reconstruction_loss, poses, activations, decoded, prediction, acc
-
-def average_gradients(tower_grads):
-  """Calculate the average gradient for each shared variable across all towers.
-
-  Note that this function provides a synchronization point across all towers.
-
-  Args:
-    tower_grads: List of lists of (gradient, variable) tuples. The outer list
-      is over individual gradients. The inner list is over the gradient
-      calculation for each tower.
-  Returns:
-     List of pairs of (gradient, variable) where the gradient has been averaged
-     across all towers.
-  """
-  average_grads = []
-  for grad_and_vars in zip(*tower_grads):
-    # Note that each grad_and_vars looks like the following:
-    #   ((grad0_gpu0, var0_gpu0), ... , (grad0_gpuN, var0_gpuN))
-    grads = []
-    for g, _ in grad_and_vars:
-      # Add 0 dimension to the gradients to represent the tower.
-      expanded_g = tf.expand_dims(g, 0)
-
-      # Append on a 'tower' dimension which we will average over below.
-      grads.append(expanded_g)
-
-    # Average over the 'tower' dimension.
-    grad = tf.concat(axis=0, values=grads)
-    grad = tf.reduce_mean(grad, 0)
-
-    # Keep in mind that the Variables are redundant because they are shared
-    # across towers. So .. we will just return the first tower's pointer to
-    # the Variable.
-    v = grad_and_vars[0][1]
-    grad_and_var = (grad, v)
-    average_grads.append(grad_and_var)
-  return average_grads
-
-class DCapsNet(object):
+class CapsNet(object):
     def __init__(self, images, labels, batch_size, num_train_batch=None, is_training=True):
         self.graph = tf.get_default_graph()
-        with self.graph.as_default(), tf.device('/cpu:0'):
+        with self.graph.as_default():
             self.batch_size = batch_size
             if is_training:
                 # images: Tensor (?, 28, 28, 1)
@@ -302,44 +230,30 @@ class DCapsNet(object):
                 logger.info("Images: {}".format(self.images))
                 logger.info("Labels: {}".format(self.labels))
                 logger.info("Hot Labels: {}".format(self.one_hot_labels))
+                # poses: Tensor(?, 10, 4, 4) activations: (?, 10)
+                self.poses, self.activations = capsules_net(self.images, num_classes=cfg.num_class, iterations=3,
+                                                            batch_size=self.batch_size, name='capsules_em')
+                self.decoded = decode(self.activations, self.one_hot_labels, self.batch_size)
                 self.global_step = tf.train.get_or_create_global_step()
+
+                # self.loss = spread_loss(self.one_hot_labels, self.activations, num_train_batch, self.global_step,
+                #                         name='spread_loss')
+                self.m_op = tf.placeholder(dtype=tf.float32, shape=())
+                self.loss, self.sp_loss, self.reconstruction_loss = spread_loss1(self.one_hot_labels, self.activations,
+                                                                                 self.images,
+                                                                                 self.decoded, self.m_op)
+                self.predictions = predictions(self.activations, self.batch_size, 'predictions')
+                self.accuracy = accuracy(self.predictions, self.labels, self.batch_size, "accuracy")
+
                 self.lrn_rate = tf.maximum(tf.train.exponential_decay(
                     1e-3, self.global_step, 1000, 0.8), 1e-5)
 
                 self.optimizer = tf.train.AdamOptimizer(learning_rate=self.lrn_rate)
-                self.m_op = tf.placeholder(dtype=tf.float32, shape=())
-                input_summaries = copy.copy(tf.get_collection(tf.GraphKeys.SUMMARIES))
+                self.train_op = compute_and_apply_gradient(optimizer=self.optimizer, loss=self.loss,
+                                                           global_step=self.global_step)
+                self.summary_op = self.get_summary_op(scope='train', name_prefix='train/')
 
-                # x_splits = tf.split(axis=0, num_or_size_splits=cfg.num_gpu, value=self.images)
-                # y_splits = tf.split(axis=0, num_or_size_splits=cfg.num_gpu, value=self.one_hot_labels)
-                # labels_splits = tf.split(axis=0, num_or_size_splits=cfg.num_gpu, value=self.labels)
-
-                tower_grads = []
-                reuse_variables = None
-                for i in range(cfg.num_gpu):
-                    with tf.device('/gpu:%d' % i):
-                        with tf.name_scope('%s_%d' % ('tower_', i)) as scope:
-                            with slim.arg_scope([slim.variable], device='/cpu:0'):
-                                # self.loss, self.sp_loss, self.reconstruction_loss, self.poses, self.activations, self.decoded, self.prediction, self.accuracy = \
-                                #     tower_loss(x_splits[i], y_splits[i], labels_splits[i], self.m_op, self.batch_size, scope, reuse_variables)
-                                self.loss, self.sp_loss, self.reconstruction_loss, self.poses, self.activations, self.decoded, self.prediction, self.accuracy = \
-                                    tower_loss(self.images, self.one_hot_labels, self.labels, self.m_op, self.batch_size,
-                                               scope, reuse_variables)
-                            reuse_variables = True
-
-                            summaries = tf.get_collection(tf.GraphKeys.SUMMARIES, scope)
-
-                            grads = self.optimizer.compute_gradients(self.loss)
-                            tower_grads.append(grads)
-                grad = average_gradients(tower_grads)
-
-                summaries.extend(input_summaries)
-
-                self.train_op = self.optimizer.apply_gradients(grad, global_step=self.global_step)
-
-                self.summary_op = tf.summary.merge(summaries)
-
-                self.saver = tf.train.Saver(tf.global_variables(), max_to_keep=5)
+                self.saver = tf.train.Saver(max_to_keep=5)
 
                 """Display parameters"""
                 total_p = np.sum([np.prod(v.get_shape().as_list()) for v in tf.global_variables()]).astype(np.int32)
