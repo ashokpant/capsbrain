@@ -15,7 +15,7 @@ from tqdm import tqdm
 import utils
 import config
 from config import cfg
-from core.network import CapsNet
+from mcaps.network import CapsNet
 from utils import get_create_inputs
 
 slim = tf.contrib.slim

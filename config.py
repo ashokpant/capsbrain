@@ -25,6 +25,7 @@ flags.DEFINE_float('epsilon', 1e-9, 'epsilon')
 flags.DEFINE_integer('batch_size', 16, 'batch size')
 flags.DEFINE_integer('epoch', 5, 'epoch')
 flags.DEFINE_integer('iter_routing', 3, 'number of iterations in routing algorithm')
+flags.DEFINE_boolean('mask_with_y', True, 'use the true label to mask out target capsule or not')
 
 flags.DEFINE_float('stddev', 0.01, 'stddev for W initializer')
 flags.DEFINE_float('regularization_scale', 0.392,
