@@ -60,6 +60,7 @@ def train():
 
     """Set Session settings."""
     config = tf.ConfigProto(allow_soft_placement=True, log_device_placement=False)
+    config.gpu_options.allow_growth = True
 
     with sv.managed_session(config=config) as sess:
 
