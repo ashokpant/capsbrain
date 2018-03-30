@@ -310,9 +310,9 @@ class DCapsNet(object):
                 self.m_op = tf.placeholder(dtype=tf.float32, shape=())
                 input_summaries = copy.copy(tf.get_collection(tf.GraphKeys.SUMMARIES))
 
-                x_splits = tf.split(axis=0, num_or_size_splits=cfg.num_gpu, value=self.images)
-                y_splits = tf.split(axis=0, num_or_size_splits=cfg.num_gpu, value=self.one_hot_labels)
-                labels_splits = tf.split(axis=0, num_or_size_splits=cfg.num_gpu, value=self.labels)
+                # x_splits = tf.split(axis=0, num_or_size_splits=cfg.num_gpu, value=self.images)
+                # y_splits = tf.split(axis=0, num_or_size_splits=cfg.num_gpu, value=self.one_hot_labels)
+                # labels_splits = tf.split(axis=0, num_or_size_splits=cfg.num_gpu, value=self.labels)
 
                 tower_grads = []
                 reuse_variables = None
