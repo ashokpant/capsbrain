@@ -12,10 +12,11 @@ import numpy as np
 import tensorflow as tf
 from tqdm import tqdm
 
+import dcaps
+import mcaps
 import utils
 import config
 from config import cfg
-from mcaps.network import CapsNet
 from utils import get_create_inputs
 
 slim = tf.contrib.slim
@@ -24,11 +25,17 @@ daiquiri.setup(level=logging.DEBUG)
 logger = daiquiri.getLogger(__name__)
 
 
-def train():
-    tf.logging.set_verbosity(tf.logging.INFO)
+def get_network(name, images=None, labels=None, batch_size=cfg.batch_size, is_training=True, *args):
+    if name == 'dcaps':
+        return dcaps.network.CapsNet(images= images, labels=labels, batch_size=batch_size, is_training=is_training)
+    elif name == 'mcaps':
+        return mcaps.network.CapsNet(*args)
+    else:
+        raise ValueError("Invalid network type {}, available networks = {}".format(cfg.network, ['dcaps', 'mcaps']))
 
-    np.random.seed(cfg.seed)
-    tf.set_random_seed(cfg.seed)
+
+def train():
+    logger.info("Training on {} dataset.".format(cfg.dataset))
 
     """Get batches per epoch."""
     train_data = get_create_inputs(cfg.dataset, True, cfg.epoch, size=(cfg.input_size, cfg.input_size))
@@ -43,12 +50,15 @@ def train():
     images = train_data[0]
     labels = train_data[1]
 
-    model = CapsNet(images=images, labels=labels, batch_size=cfg.batch_size, num_train_batch=num_train_batch)
+    model = get_network(cfg.network, images, labels, cfg.batch_size)
 
     with model.graph.as_default():
-        """Set summary writer"""
         if not os.path.exists(cfg.summary_dir):
             os.makedirs(cfg.summary_dir)
+
+        if not os.path.exists(cfg.ckpt_dir):
+            os.makedirs(cfg.ckpt_dir)
+
         summary_writer = tf.summary.FileWriter(cfg.summary_dir)
 
     sv = tf.train.Supervisor(
@@ -63,14 +73,9 @@ def train():
     config.gpu_options.allow_growth = True
 
     with sv.managed_session(config=config) as sess:
-
         """Start queue runner."""
         threads = tf.train.start_queue_runners(sess=sess, coord=sv.coord)
 
-        # Main loop
-        m_min = cfg.m_min
-        m_max = cfg.m_max
-        m = m_min
         for epoch in range(cfg.epoch):
             logger.info("Training for epoch {}/{}:".format(epoch, cfg.epoch))
             for step in tqdm(range(num_train_batch), total=num_train_batch, ncols=70, leave=False, unit='b'):
@@ -83,8 +88,8 @@ def train():
                 try:
                     if g_step % cfg.train_sum_freq == 0:
                         _, loss_value, train_acc, summary_str = sess.run(
-                            [model.train_op, model.loss, model.accuracy, model.summary_op],
-                            feed_dict={model.m_op: np.float32(m)})
+                            [model.train_op, model.loss, model.accuracy, model.summary_op])
+
                         assert not np.isnan(loss_value), 'Something wrong! loss is nan...'
                         sv.summary_writer.add_summary(summary_str, g_step)
                         logger.info(
@@ -93,12 +98,7 @@ def train():
                                                                                                            loss_value,
                                                                                                            train_acc))
                     else:
-                        _, loss_value, summary_str = sess.run([model.train_op, model.loss, model.summary_op],
-                                                              feed_dict={model.m_op: m})
-                        sv.summary_writer.add_summary(summary_str, g_step)
-                        logger.info(
-                            '{} iteration finises in {:.4f} second,  loss={:.4f}'.format(step, time.time() - tic,
-                                                                                         loss_value))
+                        sess.run(model.train_op)
                 except KeyboardInterrupt:
                     sess.close()
                     sys.exit()
@@ -107,17 +107,12 @@ def train():
                     continue
 
                 if (g_step + 1) % cfg.save_freq == 0:
-                    """Save model periodically"""
                     ckpt_file = os.path.join(cfg.ckpt_dir, 'model_{:.4f}.ckpt'.format(loss_value))
                     sv.saver.save(sess, ckpt_file, global_step=g_step)
 
-            """Epoch wise linear annealing."""
-            if g_step > 0:
-                m += (m_max - m_min) / (cfg.epoch * cfg.m_schedule)
-                if m > m_max:
-                    m = m_max
+            """Update any variables every epoch (eg. m for mcpas)"""
+            model.update_any()
 
-            """Save model at each epoch periodically"""
             ckpt_file = os.path.join(cfg.ckpt_dir, 'model_{:.4f}.ckpt'.format(loss_value))
             sv.saver.save(sess, ckpt_file, global_step=g_step)
     sess.close()
@@ -125,10 +120,6 @@ def train():
 
 def evaluation(scope='test'):
     logger.info("Evaluating on {} dataset.".format(scope))
-    tf.logging.set_verbosity(tf.logging.INFO)
-
-    np.random.seed(cfg.seed)
-    tf.set_random_seed(cfg.seed)
 
     """Get data."""
     if scope == 'train':
@@ -138,7 +129,7 @@ def evaluation(scope='test'):
         data = get_create_inputs(cfg.dataset, False, cfg.epoch, size=(cfg.input_size, cfg.input_size))
         num_batch = int(cfg.test_size / cfg.batch_size)
 
-    model = CapsNet(images=None, labels=None, batch_size=cfg.batch_size, num_train_batch=None, is_training=False)
+    model = get_network(cfg.network, images=None, labels=None, batch_size=cfg.batch_size, is_training=False)
 
     with model.graph.as_default():
         if scope == 'train':
@@ -175,7 +166,7 @@ def evaluation(scope='test'):
 
 def predict():
     logger.info("Prediction with {} model.".format(cfg.dataset))
-    model = CapsNet(images=None, labels=None, num_train_batch=None, batch_size=1, is_training=False)
+    model = get_network(cfg.network, images=None, labels=None, batch_size=1, is_training=False)
 
     sv = tf.train.Supervisor(
         graph=model.graph,
@@ -210,8 +201,12 @@ def predict():
 
 def main(_):
     config.update_cfg(cfg.dataset)
-
     logger.info("Config: {}".format(cfg.flag_values_dict()))
+
+    tf.logging.set_verbosity(tf.logging.INFO)
+    np.random.seed(cfg.seed)
+    tf.set_random_seed(cfg.seed)
+
     if cfg.mode == 'train':
         tf.logging.info(' Start training...')
         train()
