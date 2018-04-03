@@ -15,8 +15,8 @@ flags.DEFINE_float('ac_lambda_step', 0.01,
 
 flags.DEFINE_boolean('weight_reg', False, 'train with regularization of weights')
 flags.DEFINE_string('norm', 'norm2', 'norm type')
-flags.DEFINE_float('m_max', 0.9, 'the parameter of m plus')
-flags.DEFINE_float('m_min', 0.2, 'the parameter of m minus')
+flags.DEFINE_float('m_plus', 0.9, 'the parameter of m plus (dcaps)')
+flags.DEFINE_float('m_minus', 0.1, 'the parameter of m minus (dcaps)')
 flags.DEFINE_float('m_schedule', 0.2, 'the m will get to 0.9 at current epoch')
 flags.DEFINE_float('lambda_val', 0.5, 'down weight of the loss for absent digit classes')
 flags.DEFINE_float('epsilon', 1e-9, 'epsilon')
@@ -50,7 +50,7 @@ flags.DEFINE_string('input_size', None, 'Input image size')
 flags.DEFINE_string('input_channel', None, 'Input image channels')
 flags.DEFINE_string('train_size', None, 'Train samples')
 flags.DEFINE_string('test_size', None, 'Test samples')
-flags.DEFINE_string('mode', 'train', 'Operation mode[train, eval, predict]')
+flags.DEFINE_string('mode', 'eval', 'Operation mode[train, eval, predict]')
 flags.DEFINE_string('input_file', 'data/image.jpg', 'Input image to predict')
 flags.DEFINE_integer('num_threads', 8, 'number of threads of enqueueing examples')
 flags.DEFINE_string('log_dir', 'outputs', 'logs directory')
@@ -62,6 +62,7 @@ flags.DEFINE_integer('log_freq', 1, 'the frequency of logging(steps)')
 flags.DEFINE_integer('save_freq', 10, 'the frequency of saving model(steps)')
 flags.DEFINE_integer('max_steps', 100000, 'the max steps')
 flags.DEFINE_integer('seed', 1234, "Initial random seed")
+flags.DEFINE_string('network', 'dcaps', "Network type [dcaps, mcaps]")
 ############################
 #   distributed setting    #
 ############################
@@ -79,7 +80,7 @@ def update_cfg(dataset):
         cfg.num_class = 10
         cfg.input_size = 28
         cfg.input_channel = 1
-        cfg.train_size = 60000
+        cfg.train_size = 50000
         cfg.test_size = 10000
     elif dataset == "fashion_mnist":
         cfg.num_class = 10
