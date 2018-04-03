@@ -326,7 +326,7 @@ def imread(filename, size=None):
             image = imresize(image, size)
         return image
     except Exception as e:
-        logger.error("Unable to read image: {}, {}".format(filename, e))
+        logger.warning("Unable to read image: {}, {}".format(filename, e))
         return None
 
 
@@ -344,7 +344,7 @@ def bgr2gray(image):
 def show_image(image, text=None, pause=0):
     emmi = None
     if text is not None:
-        emmi = np.zeros_like(image)
+        emmi = np.zeros(shape=image.shape)
         add_text(img=emmi, text=text, text_top=np.int32(emmi.shape[0] / 2), text_left=np.int32(emmi.shape[1] / 2),
                  image_scale=1)
     stack = np.hstack((image, np.ones(shape=image.shape), emmi))

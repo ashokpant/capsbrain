@@ -17,8 +17,12 @@ logger = daiquiri.getLogger(__name__)
 
 def predictions(activations, name='output'):
     with tf.variable_scope(name) as scope:
-        logits_idx = tf.to_int32(tf.argmax(softmax(activations, axis=1), axis=1))
-        return logits_idx
+        if len(activations.shape) ==1:
+            logits_idx = tf.to_int32(tf.argmax(softmax(activations, axis=0), axis=0))
+            return [logits_idx]
+        else:
+            logits_idx = tf.to_int32(tf.argmax(softmax(activations, axis=1), axis=1))
+            return logits_idx
 
 
 def accuracy(outputs, targets, name='accuracy'):
@@ -67,16 +71,17 @@ class CapsNet(object):
                 self.y = tf.one_hot(self.labels, depth=cfg.num_class, axis=1, dtype=tf.float32)
                 self.digitCaps, self.activations = self.build_arch()
                 self.decoded = decode_digicaps(self.digitCaps, self.y, self.batch_size)
-                self.global_step = tf.train.get_or_create_global_step()
+                # self.global_step = tf.train.get_or_create_global_step()
 
-            self.prediction = predictions(self.activations)
-            self.accuracy = accuracy(self.prediction, self.labels)
-            self.saver = tf.train.Saver(max_to_keep=5)
+            self.predictions = predictions(self.activations)
+            self.accuracy = accuracy(self.predictions, self.labels)
 
             if is_training:
                 self.summary_op = self.get_summary_op(scope='train', name_prefix='train/')
             else:
                 self.summary_op = self.get_summary_op
+
+            self.saver = tf.train.Saver()
 
             total_p = np.sum([np.prod(v.get_shape().as_list()) for v in tf.global_variables()]).astype(np.int32)
             train_p = np.sum([np.prod(v.get_shape().as_list()) for v in tf.trainable_variables()]).astype(np.int32)

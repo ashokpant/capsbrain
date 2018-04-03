@@ -143,7 +143,6 @@ def evaluation(scope='test'):
         graph=model.graph,
         is_chief=True,
         summary_writer=summary_writer,
-        global_step=model.global_step,
         saver=model.saver)
 
     with sv.managed_session(config=tf.ConfigProto(allow_soft_placement=True)) as sess:
@@ -155,7 +154,7 @@ def evaluation(scope='test'):
         for step in tqdm(range(num_batch), total=num_batch, ncols=70, leave=False, unit='b'):
             batch_images, batch_labels = sess.run(data)
             acc, summary_str = sess.run([model.accuracy, summary_op],
-                                        feed_dict={model.images: batch_images, model.labels: batch_labels})
+                                        feed_dict={model.x: batch_images, model.labels: batch_labels})
             summary_writer.add_summary(summary_str, step)
             logger.info("Batch {}, batch_accuracy: {:.2f}, total_acc: {:.2f}".format(step, acc, avg_acc / (step + 1.0)))
             avg_acc += acc
@@ -172,7 +171,6 @@ def predict():
         graph=model.graph,
         is_chief=True,
         summary_writer=None,
-        global_step=model.global_step,
         saver=model.saver)
     images = []
     if cfg.input_file.endswith('.txt'):
@@ -187,16 +185,19 @@ def predict():
         for filename in images:
             tic = time.time()
             image = utils.imread(filename)
+            if image is None:
+                continue
             img = utils.imresize(image, (cfg.input_size, cfg.input_size))
             img = utils.bgr2gray(img)
             img = np.expand_dims(img, 3)
             img = np.expand_dims(img, 0)
             # poses, activations, predictions = sess.run([model.poses, model.activations, model.predictions],
             # feed_dict={model.images: img})
-            predictions = sess.run(model.predictions, feed_dict={model.images: img})
+            # predictions = sess.run(model.activations, feed_dict={model.x: img})
+            predictions = sess.run(model.predictions, feed_dict={model.x: img})
             tac = time.time() - tic
             logger.info("Input:{} , Prediction: {}, Time: {:.3f}".format(cfg.input_file, predictions[0], tac))
-            utils.show_image(image=image, text=str(predictions[0]), pause=100)
+            utils.show_image(image=image, text=str(predictions[0]), pause=0)
 
 
 def main(_):
