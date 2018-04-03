@@ -5,3 +5,4 @@
 """
 
 from . import network
+from . import layers

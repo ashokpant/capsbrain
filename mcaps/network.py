@@ -4,6 +4,7 @@ import tensorflow as tf
 
 from config import cfg
 from mcaps.layers import conv2d, primary_caps, conv_capsule, class_capsules
+from utils import softmax
 
 slim = tf.contrib.slim
 logger = daiquiri.getLogger(__name__)
@@ -59,10 +60,10 @@ def capsules_net(inputs, num_classes, iterations, batch_size, name='capsule_em')
     return poses, activations
 
 
-def predictions(outputs, batch_size, name='output'):
+def predictions(activations, batch_size, name='output'):
     with tf.variable_scope(name) as scope:
-        logits_idx = tf.to_int32(tf.argmax(outputs, axis=1))
-        logits_idx = tf.reshape(logits_idx, shape=(batch_size,))
+        logits_idx = tf.to_int32(tf.argmax(softmax(activations, axis=1), axis=1))
+        # logits_idx = tf.reshape(logits_idx, shape=(batch_size,))
         return logits_idx
 
 
@@ -151,6 +152,8 @@ def spread_loss1(hot_labels, activations, images, decoded, m):
     :param m:
     :return:
     """
+
+
     y = tf.expand_dims(hot_labels, axis=2)
     data_size = int(images.get_shape()[1])
 
@@ -193,7 +196,8 @@ def compute_and_apply_gradient(optimizer, loss, global_step, nan_check=True, use
         if nan_check:
             # Compute gradient.
             grad = optimizer.compute_gradients(loss)
-            # See: https://stackoverflow.com/questions/40701712/how-to-check-nan-in-gradients-in-tensorflow-when-updating
+            # See: https://stackoverflow.com/questions/40701712/how-to-check-nan-in-gradients-in-tensorflow-when
+            # -updating
             grad_check = [tf.check_numerics(g, message='Gradient NaN Found!')
                           for g, _ in grad if g is not None] + [tf.check_numerics(loss, message='Loss NaN Found')]
 
@@ -213,7 +217,7 @@ def compute_and_apply_gradient(optimizer, loss, global_step, nan_check=True, use
 
 
 class CapsNet(object):
-    def __init__(self, images, labels, batch_size, num_train_batch=None, is_training=True):
+    def __init__(self, images, labels, batch_size, is_training=True):
         self.graph = tf.get_default_graph()
         with self.graph.as_default():
             self.batch_size = batch_size
@@ -238,10 +242,11 @@ class CapsNet(object):
 
                 # self.loss = spread_loss(self.one_hot_labels, self.activations, num_train_batch, self.global_step,
                 #                         name='spread_loss')
+                self.m = 0.2
                 self.m_op = tf.placeholder(dtype=tf.float32, shape=())
                 self.loss, self.sp_loss, self.reconstruction_loss = spread_loss1(self.one_hot_labels, self.activations,
                                                                                  self.images,
-                                                                                 self.decoded, self.m_op)
+                                                                                 self.decoded, self.m)
                 self.predictions = predictions(self.activations, self.batch_size, 'predictions')
                 self.accuracy = accuracy(self.predictions, self.labels, self.batch_size, "accuracy")
 
@@ -282,6 +287,20 @@ class CapsNet(object):
 
                 self.summary_op = self.get_summary_op
                 self.saver = tf.train.Saver(max_to_keep=5)
+
+    def update_any(self):
+        self.update_m()
+
+    def update_m(self, num_train_batch=0):
+        """Linear annealing of m"""
+        m_min = 0.2
+        m_max = 0.9
+        if num_train_batch >0:
+            self.m += (m_max - m_min) / (num_train_batch * cfg.m_schedule)
+        else:
+            self.m += (m_max - m_min) / (cfg.epoch * cfg.m_schedule)
+        if self.m > m_max:
+            self.m = m_max
 
     def get_summary_op(self, scope, name_prefix=''):
         train_summary = []
