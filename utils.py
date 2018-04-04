@@ -342,13 +342,15 @@ def bgr2gray(image):
 
 
 def show_image(image, text=None, pause=0):
+    image = image.astype(np.uint8).copy()
     emmi = None
     if text is not None:
-        emmi = np.zeros(shape=image.shape)
-        add_text(img=emmi, text=text, text_top=np.int32(emmi.shape[0] / 2), text_left=np.int32(emmi.shape[1] / 2),
+        emmi = np.full_like(image, 255)
+        add_text(img=emmi, text=text, text_top=np.int32(image.shape[1]/2), text_left=np.int32(0),
                  image_scale=1)
-    stack = np.hstack((image, np.ones(shape=image.shape), emmi))
-    cv2.imshow('Output', stack)
+    stack = np.hstack((image, np.full_like(image, 255), emmi))
+
+    cv2.imshow('Output', stack.astype(np.uint8))
     cv2.waitKey(pause)
     # c = cv2.waitKey(30) & 0xff
     # if c == 27 or c == 113:
@@ -375,7 +377,7 @@ def add_text(img, text, text_top, text_left=0, image_scale=1):
         org=(text_left, text_top),
         fontFace=cv2.FONT_HERSHEY_SIMPLEX,
         fontScale=0.45 * image_scale,
-        color=(255, 255, 255))
+        color=(0, 0, 0))
     return text_top + int(5 * image_scale)
 
 

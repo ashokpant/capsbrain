@@ -153,7 +153,6 @@ def spread_loss1(hot_labels, activations, images, decoded, m):
     :return:
     """
 
-
     y = tf.expand_dims(hot_labels, axis=2)
     data_size = int(images.get_shape()[1])
 

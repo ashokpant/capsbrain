@@ -1,4 +1,5 @@
 import os
+import sys
 
 import tensorflow as tf
 
@@ -42,16 +43,16 @@ flags.DEFINE_integer('D', 16, 'number of channels in output from ConvCaps2')
 ############################
 #   environment setting    #
 ############################
-flags.DEFINE_string('dataset', 'mnist',
+flags.DEFINE_string('dataset', 'fashion_mnist',
                     'The name of dataset [mnist, fashion_mnist, smallNORB, cifar10, cifar100, att_faces, casia]')
 flags.DEFINE_string('dataset_dir', None, 'Dataset dir')
-flags.DEFINE_string('num_class', None, 'Number of classes')
-flags.DEFINE_string('input_size', None, 'Input image size')
-flags.DEFINE_string('input_channel', None, 'Input image channels')
-flags.DEFINE_string('train_size', None, 'Train samples')
-flags.DEFINE_string('test_size', None, 'Test samples')
-flags.DEFINE_string('mode', 'predict', 'Operation mode[train, eval, predict]')
-flags.DEFINE_string('input_file', 'data/images.txt', 'Input image/file/video to predict')
+flags.DEFINE_integer('num_class', None, 'Number of classes')
+flags.DEFINE_integer('input_size', None, 'Input image size')
+flags.DEFINE_integer('input_channel', None, 'Input image channels')
+flags.DEFINE_integer('train_size', None, 'Train samples')
+flags.DEFINE_integer('test_size', None, 'Test samples')
+flags.DEFINE_string('mode', 'train', 'Operation mode[train, eval, predict]')
+flags.DEFINE_string('input_file', 'data/att_files.txt', 'Input image/file/video to predict')
 flags.DEFINE_integer('num_threads', 8, 'number of threads of enqueueing examples')
 flags.DEFINE_string('log_dir', 'outputs', 'logs directory')
 flags.DEFINE_string('ckpt_dir', None, 'ckpt directory')
@@ -73,75 +74,77 @@ flags.DEFINE_integer('thread_per_gpu', 4, 'Number of prepossessing threads per t
 cfg = tf.app.flags.FLAGS
 
 
-# tf.logging.set_verbosity(tf.logging.INFO)
-
-def update_cfg(dataset):
+def defaults(dataset):
+    default = {}
     if dataset == "mnist":
-        cfg.num_class = 10
-        cfg.input_size = 28
-        cfg.input_channel = 1
-        cfg.train_size = 50000
-        cfg.test_size = 10000
+        default['dataset'] = dataset
+        default['num_class'] = 10
+        default['input_size'] = 28
+        default['input_channel'] = 1
+        default['train_size'] = 60000
+        default['test_size'] = 10000
     elif dataset == "fashion_mnist":
-        cfg.num_class = 10
-        cfg.input_size = 28
-        cfg.input_channel = 1
-        cfg.train_size = 60000
-        cfg.test_size = 10000
-        cfg.batch_size = 16
+        default['dataset'] = dataset
+        default['num_class'] = 10
+        default['input_size'] = 28
+        default['input_channel'] = 1
+        default['train_size'] = 60000
+        default['test_size'] = 10000
     elif dataset == "cifar10":
-        cfg.num_class = 10
-        cfg.input_size = 32
-        cfg.input_channel = 3
-        cfg.train_size = 50000
-        cfg.test_size = 10000
+        default['dataset'] = dataset
+        default['num_class'] = 10
+        default['input_size'] = 32
+        default['input_channel'] = 3
+        default['train_size'] = 50000
+        default['test_size'] = 10000
     elif dataset == "cifar100":
-        cfg.num_class = 100
-        cfg.input_size = 32
-        cfg.input_channel = 3
-        cfg.train_size = 50000
-        cfg.test_size = 10000
+        default['dataset'] = dataset
+        default['num_class'] = 100
+        default['input_size'] = 32
+        default['input_channel'] = 3
+        default['train_size'] = 50000
+        default['test_size'] = 10000
     elif dataset == "smallNORB":
-        cfg.num_class = 5
-        cfg.input_size = 32
-        cfg.input_channel = 1
-        cfg.train_size = 23400 * 2
-        cfg.test_size = 23400 * 2
+        default['dataset'] = dataset
+        default['num_class'] = 5
+        default['input_size'] = 32
+        default['input_channel'] = 1
+        default['train_size'] = 23400 * 2
+        default['test_size'] = 23400 * 2
     elif dataset == "att_faces":
-        cfg.num_class = 40
-        cfg.input_size = 32
-        cfg.input_channel = 3
-        cfg.train_size = 320
-        cfg.test_size = 80
-        cfg.batch_size = 16
+        default['dataset'] = dataset
+        default['num_class'] = 40
+        default['input_size'] = 32
+        default['input_channel'] = 3
+        default['train_size'] = 320  # 80%
+        default['test_size'] = 80  # 20%
     elif dataset == "casia":
-        # cfg.num_class = 10575
-        # cfg.input_size = 28
-        # cfg.input_channel = 3
-        # cfg.train_size = 789530
-        # cfg.test_size = 197382
+        default['dataset'] = dataset
+        default['num_class'] = 10575
+        default['input_size'] = 32
+        default['input_channel'] = 3
+        default['train_size'] = 789530  # 80%
+        default['test_size'] = 197382  # 20%
 
-        # cfg.num_class = 500
-        # cfg.input_size = 32
-        # cfg.input_channel = 3
-        # cfg.train_size = 25660
-        # cfg.test_size = 6414
-
-        # cfg.num_class = 1000
-        # cfg.input_size = 32
-        # cfg.input_channel = 3
-        # cfg.train_size = 211220
-        # cfg.test_size = 52804
-
-        cfg.num_class = 100
-        cfg.input_size = 32
-        cfg.input_channel = 3
-        cfg.train_size = 28679
-        cfg.test_size = 7169
-
+        # default['dataset'] = dataset
+        # default['num_class'] = 100  # selected with samples per class >= 100
+        # default['input_size'] = 32
+        # default['input_channel'] = 3
+        # default['train_size'] = 28679  # 80%
+        # default['test_size'] = 7169  # 20%
     else:
         raise KeyError(dataset)
 
-    cfg.ckpt_dir = os.path.join(cfg.log_dir, dataset, cfg.network, 'model')
-    cfg.summary_dir = os.path.join(cfg.log_dir, dataset, cfg.network, 'train_log')
+    return default
 
+
+def update_config(argv=None):
+    if argv is None:
+        argv = sys.argv
+    cfg._parse_args(argv, True)
+    default = defaults(cfg.dataset)
+    for key, value in default.items():
+        cfg.set_default(key, value)
+    cfg.ckpt_dir = os.path.join(cfg.log_dir, cfg.dataset, cfg.network, 'model')
+    cfg.summary_dir = os.path.join(cfg.log_dir, cfg.dataset, cfg.network, 'train_log')
+    cfg._parse_args(argv, True)

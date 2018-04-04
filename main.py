@@ -154,10 +154,11 @@ def evaluation(scope='test'):
         for step in tqdm(range(num_batch), total=num_batch, ncols=70, leave=False, unit='b'):
             batch_images, batch_labels = sess.run(data)
             acc, summary_str = sess.run([model.accuracy, summary_op],
-                                        feed_dict={model.x: batch_images, model.labels: batch_labels})
+                                        feed_dict={model.x: batch_images, model.labels: batch_labels, model.cum_acc: avg_acc/(step+1.0)})
             summary_writer.add_summary(summary_str, step)
-            logger.info("Batch {}, batch_accuracy: {:.2f}, total_acc: {:.2f}".format(step, acc, avg_acc / (step + 1.0)))
             avg_acc += acc
+            logger.info("Batch {}, batch_accuracy: {:.2f}, total_acc: {:.2f}".format(step, acc, avg_acc / (step + 1.0)))
+
         avg_acc = avg_acc / num_batch
         logger.info("Total accuracy: {:2f}".format(avg_acc))
         sv.coord.join(threads)
@@ -183,25 +184,42 @@ def predict():
         logger.info("Model is restored successfully: {}".format(cfg.ckpt_dir))
 
         for filename in images:
+            split = filename.split(" ")
+            if len(split)> 1:
+                name = split[0]
+                label = split[1]
+            else:
+                name = split[0]
+                label = None
+
             tic = time.time()
-            image = utils.imread(filename)
+            image = utils.imread(name)
             if image is None:
                 continue
+
             img = utils.imresize(image, (cfg.input_size, cfg.input_size))
-            img = utils.bgr2gray(img)
-            img = np.expand_dims(img, 3)
+
+            if img.shape[2] ==3 and cfg.input_channel ==1:
+                img = utils.bgr2gray(img)
+                img = np.expand_dims(img, 3)
+
             img = np.expand_dims(img, 0)
-            # poses, activations, predictions = sess.run([model.poses, model.activations, model.predictions],
-            # feed_dict={model.images: img})
-            # predictions = sess.run(model.activations, feed_dict={model.x: img})
             predictions = sess.run(model.predictions, feed_dict={model.x: img})
             tac = time.time() - tic
-            logger.info("Input:{} , Prediction: {}, Time: {:.3f}".format(cfg.input_file, predictions[0], tac))
-            utils.show_image(image=image, text=str(predictions[0]), pause=0)
+            if label is not None:
+                logger.info("Input:{}, Target: {}, Prediction: {},  Time: {:.3f} sec.".format(name, label, predictions[0], tac))
+            else:
+                logger.info("Input:{}, Prediction: {}, Time: {:.3f} sec".format(name, predictions[0], tac))
+
+            if label is not None:
+                text = "T: "+str(label)+", O: "+str(predictions[0])
+            else:
+                text = str(predictions[0])
+            utils.show_image(image=image, text=text, pause=0)
 
 
 def main(_):
-    config.update_cfg(cfg.dataset)
+    config.update_config(argv=sys.argv)
     logger.info("Config: {}".format(cfg.flag_values_dict()))
 
     tf.logging.set_verbosity(tf.logging.INFO)

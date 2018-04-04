@@ -71,10 +71,10 @@ class CapsNet(object):
                 self.y = tf.one_hot(self.labels, depth=cfg.num_class, axis=1, dtype=tf.float32)
                 self.digitCaps, self.activations = self.build_arch()
                 self.decoded = decode_digicaps(self.digitCaps, self.y, self.batch_size)
-                # self.global_step = tf.train.get_or_create_global_step()
 
             self.predictions = predictions(self.activations)
             self.accuracy = accuracy(self.predictions, self.labels)
+            self.cum_acc = tf.placeholder_with_default(tf.constant(0.), shape=[])
 
             if is_training:
                 self.summary_op = self.get_summary_op(scope='train', name_prefix='train/')
@@ -157,6 +157,7 @@ class CapsNet(object):
             train_summary.append(tf.summary.histogram(name_prefix + 'activation', self.activations))
         elif scope == "test":
             train_summary.append(tf.summary.scalar(name_prefix + 'accuracy', self.accuracy))
+            train_summary.append(tf.summary.scalar(name_prefix + 'cum_accuracy', self.cum_acc))
             recon_img = tf.reshape(self.decoded,
                                    shape=(self.batch_size, cfg.input_size, cfg.input_size, cfg.input_channel))
             train_summary.append(tf.summary.image(name_prefix + 'reconstruction', recon_img))
