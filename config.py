@@ -50,8 +50,8 @@ flags.DEFINE_string('input_size', None, 'Input image size')
 flags.DEFINE_string('input_channel', None, 'Input image channels')
 flags.DEFINE_string('train_size', None, 'Train samples')
 flags.DEFINE_string('test_size', None, 'Test samples')
-flags.DEFINE_string('mode', 'eval', 'Operation mode[train, eval, predict]')
-flags.DEFINE_string('input_file', 'data/image.jpg', 'Input image to predict')
+flags.DEFINE_string('mode', 'predict', 'Operation mode[train, eval, predict]')
+flags.DEFINE_string('input_file', 'data/images.txt', 'Input image/file/video to predict')
 flags.DEFINE_integer('num_threads', 8, 'number of threads of enqueueing examples')
 flags.DEFINE_string('log_dir', 'outputs', 'logs directory')
 flags.DEFINE_string('ckpt_dir', None, 'ckpt directory')
@@ -142,6 +142,6 @@ def update_cfg(dataset):
     else:
         raise KeyError(dataset)
 
-    cfg.ckpt_dir = os.path.join(cfg.log_dir, dataset, 'model')
-    cfg.summary_dir = os.path.join(cfg.log_dir, dataset, 'train_log')
+    cfg.ckpt_dir = os.path.join(cfg.log_dir, dataset, cfg.network, 'model')
+    cfg.summary_dir = os.path.join(cfg.log_dir, dataset, cfg.network, 'train_log')
 
