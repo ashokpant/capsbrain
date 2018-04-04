@@ -309,7 +309,7 @@ def load_data(dataset_name: str, is_train: bool):
 
 def get_create_inputs(dataset_name: str, is_train: bool, epochs: int, size=None):
     options = {'mnist': lambda: create_inputs_mnist(is_train),
-               'fashion_mnist': lambda: create_inputs_mnist(is_train),
+               'fashion_mnist': lambda: create_inputs_fashion_mnist(is_train),
                'smallNORB': lambda: create_inputs_norb(is_train, epochs),
                'cifar10': lambda: create_inputs_cifar10(is_train),
                'cifar100': lambda: create_inputs_cifar100(is_train),
