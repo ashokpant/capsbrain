@@ -1,6 +1,5 @@
 import numpy as np
 import tensorflow as tf
-from boto.kinesis.exceptions import InvalidArgumentException
 
 from tfrecord import dataset_utils
 
