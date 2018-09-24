@@ -1,16 +1,12 @@
-## capsbrain: CapsuleNet(DigitCaps and MatrixCaps) library for training, evaluation and prediction
-
-
-
-### Uses
-
+## capsbrain: 
+CapsuleNet(DigitCaps and MatrixCaps) library for training, evaluation and prediction
 
 
 ### Papers
 * Matrix Capsules with EM Routing [[Hinton, 2018 (pdf)](https://openreview.net/pdf?id=HJWLfGWRb)]
 * Dynamic Routing Between Capsules [[Hinton, 2017 (pdf)](https://arxiv.org/pdf/1710.09829.pdf)]
 
-### References for 
+### References
 * [Understanding Matrix capsules with EM Routing (Based on Hinton's Capsule Networks)](https://jhui.github.io/2017/11/14/Matrix-Capsules-with-EM-routing-Capsule-Network/)
 * Understanding Hinton’s Capsule Networks
     * [Intuition](https://medium.com/ai%C2%B3-theory-practice-business/understanding-hintons-capsule-networks-part-i-intuition-b4b559d1159b)
@@ -48,3 +44,5 @@ Other related implementations, taken from [here](https://github.com/XifengGuo/Ca
     * [soskek/dynamic_routing_between_capsules](https://github.com/soskek/dynamic_routing_between_capsules)
 * Matlab:
     * [yechengxi/LightCapsNet](https://github.com/yechengxi/LightCapsNet)
+* Keras:
+    * [XifengGuo/CapsNet-Keras](https://github.com/XifengGuo/CapsNet-Keras)
